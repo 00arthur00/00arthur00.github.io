@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=6.3.0" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=6.3.0">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=6.3.0" color="#222">
+
+
+
+
+
+
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '6.3.0',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="原文基于prometheus2.8 一些函数具有默认参数，例如year(v=vector(time()) instant-vector)。 这意味着有一个参数v是一个即时向量，如果没有提供，它将默认为表达式向量的值vector(time())。  abs()  abs(v instant-vector)返回输入向量，所有样本值都转换为其绝对值。  absent()  absent(v instan">
+<meta name="keywords" content="prometheus,监控">
+<meta property="og:type" content="article">
+<meta property="og:title" content="prometheus查询-函数">
+<meta property="og:url" content="http://blog.yapo.fun/2019/03/23/prometheus/query/prometheus-querying-functions/index.html">
+<meta property="og:site_name" content="Arthur&#39;s Blog">
+<meta property="og:description" content="原文基于prometheus2.8 一些函数具有默认参数，例如year(v=vector(time()) instant-vector)。 这意味着有一个参数v是一个即时向量，如果没有提供，它将默认为表达式向量的值vector(time())。  abs()  abs(v instant-vector)返回输入向量，所有样本值都转换为其绝对值。  absent()  absent(v instan">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2019-11-11T13:26:06.037Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="prometheus查询-函数">
+<meta name="twitter:description" content="原文基于prometheus2.8 一些函数具有默认参数，例如year(v=vector(time()) instant-vector)。 这意味着有一个参数v是一个即时向量，如果没有提供，它将默认为表达式向量的值vector(time())。  abs()  abs(v instant-vector)返回输入向量，所有样本值都转换为其绝对值。  absent()  absent(v instan">
+
+
+
+  <link rel="alternate" href="/atom.xml" title="Arthur's Blog" type="application/atom+xml" />
+
+
+
+
+  <link rel="canonical" href="http://blog.yapo.fun/2019/03/23/prometheus/query/prometheus-querying-functions/"/>
+
+
+
+<script type="text/javascript" id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>prometheus查询-函数 | Arthur's Blog</title>
+  
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style type="text/css">
+    .use-motion .motion-element,
+    .use-motion .brand,
+    .use-motion .menu-item,
+    .sidebar-inner,
+    .use-motion .post-block,
+    .use-motion .pagination,
+    .use-motion .comments,
+    .use-motion .post-header,
+    .use-motion .post-body,
+    .use-motion .collection-title { opacity: initial; }
+
+    .use-motion .logo,
+    .use-motion .site-title,
+    .use-motion .site-subtitle {
+      opacity: initial;
+      top: initial;
+    }
+
+    .use-motion {
+      .logo-line-before i { left: initial; }
+      .logo-line-after i { right: initial; }
+    }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Arthur's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="Toggle navigation bar">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+    <a href="/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-home"></i> <br />Home</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+    <a href="/tags/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />Tags</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+    <a href="/categories/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-th"></i> <br />Categories</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+    <a href="/archives/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />Archives</a>
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://blog.yapo.fun/2019/03/23/prometheus/query/prometheus-querying-functions/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Arthur">
+      <meta itemprop="description" content="Personal Blog, Notes and Everything should be kept">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Arthur's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">prometheus查询-函数
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+
+              
+                
+              
+
+              <time title="Created: 2019-03-23 15:58:00" itemprop="dateCreated datePublished" datetime="2019-03-23T15:58:00+08:00">2019-03-23</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">Edited on</span>
+                
+                <time title="Modified: 2019-11-11 21:26:06" itemprop="dateModified" datetime="2019-11-11T21:26:06+08:00">2019-11-11</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/监控/" itemprop="url" rel="index"><span itemprop="name">监控</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2019/03/23/prometheus/query/prometheus-querying-functions/#comments" itemprop="discussionUrl">
+                  <span class="post-meta-item-text">Comments: </span> <span class="post-comments-count gitment-comments-count" data-xid="/2019/03/23/prometheus/query/prometheus-querying-functions/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p><a href="https://prometheus.io/docs/prometheus/2.8/querying/functions/" target="_blank" rel="noopener">原文</a>基于prometheus2.8</p>
+<p>一些函数具有默认参数，例如<code>year(v=vector(time()) instant-vector)</code>。 这意味着有一个参数v是一个即时向量，如果没有提供，它将默认为表达式向量的值<code>vector(time())</code>。</p>
+<ul>
+<li>abs()</li>
+</ul>
+<p><code>abs(v instant-vector)</code>返回输入向量，所有样本值都转换为其绝对值。</p>
+<ul>
+<li>absent()</li>
+</ul>
+<p><code>absent(v instant-vector)</code>如果传递给它的向量具有任何元素，则返回空向量;如果传递给它的向量没有元素，则返回值为1的1元素向量。</p>
+<p>这对于在给定指标名称和标签组合不存在时间序列时发出警报非常有用。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">absent(nonexistent&#123;job=&quot;myjob&quot;&#125;)</span><br><span class="line"># =&gt; &#123;job=&quot;myjob&quot;&#125;</span><br><span class="line"></span><br><span class="line">absent(nonexistent&#123;job=&quot;myjob&quot;,instance=~&quot;.*&quot;&#125;)</span><br><span class="line"># =&gt; &#123;job=&quot;myjob&quot;&#125;</span><br><span class="line"></span><br><span class="line">absent(sum(nonexistent&#123;job=&quot;myjob&quot;&#125;))</span><br><span class="line"># =&gt; &#123;&#125;</span><br></pre></td></tr></table></figure></p>
+<p>在第二个例子中，<code>absent()</code>试图从输入向量中导出1元素输出向量的标签。</p>
+<ul>
+<li><p>ceil()<br><code>ceil(v instant-vector)</code>将v中所有元素的样本值舍入到最接近的整数。</p>
+</li>
+<li><p>changes()</p>
+</li>
+</ul>
+<p>对于每个输入时间系列，<code>change(v range-vector)</code>将返回其值在所提供的时间范围内更改的次数作为即时向量。</p>
+<ul>
+<li>clamp_max()</li>
+</ul>
+<p><code>clamp_max(v instant-vector,max scalar)</code>钳制v中所有元素的样本值，使其上限为max。</p>
+<ul>
+<li>clamp_min()</li>
+</ul>
+<p><code>clamp_min(v instant-vector, min scalar)</code>钳制v中所有元素的样本值，使其下限为min。</p>
+<ul>
+<li>day_of_month()</li>
+</ul>
+<p><code>day_of_month(v=vector(time()) instant-vector)</code>返回UTC中每个给定时间的月中的某天。 返回值为1到31。</p>
+<ul>
+<li>day_of_week()</li>
+</ul>
+<p><code>day_of_week(v=vector(time()) instant-vector)</code>返回UTC中每个给定时间的星期几。 返回值为0到6，其中0表示星期日等。</p>
+<ul>
+<li>days_in_month()</li>
+</ul>
+<p><code>days_in_month(v=vector(time()) instant-vector)</code>返回UTC中每个给定时间的月中天数。 返回值为28到31。</p>
+<ul>
+<li>delta()</li>
+</ul>
+<p><code>delta(v range-vector)</code>计算范围向量v中每个时间系列元素的第一个和最后一个值之间的差值，返回具有给定增量和等效标签的即时向量。 delta被外推以覆盖范围向量选择器中指定的全时间范围，因此即使样本值都是整数，也可以获得非整数结果。</p>
+<p>以下示例表达式返回现在和2小时之前CPU温度的差异：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">delta(cpu_temp_celsius&#123;host=&quot;zeus&quot;&#125;[2h])</span><br></pre></td></tr></table></figure></p>
+<p><code>delat</code>仅能被用于gauge类型。</p>
+<ul>
+<li>deriv()</li>
+</ul>
+<p><code>deriv(v range-vector)</code>使用<a href="https://en.wikipedia.org/wiki/Simple_linear_regression" target="_blank" rel="noopener">简单线性回归</a>计算范围向量v中时间序列的每秒导数。</p>
+<p><code>deriv</code>仅能被用于gauge类型。</p>
+<ul>
+<li>exp()</li>
+</ul>
+<p><code>exp(v instant-vector)</code>计算v中所有元素的指数函数。特殊情况是：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Exp(+Inf) = +Inf</span><br><span class="line">Exp(NaN) = NaN</span><br></pre></td></tr></table></figure></p>
+<ul>
+<li><p>floor()<br><code>floor(v instant-vector)</code>将v中所有元素的样本值舍入为最接近的整数。</p>
+</li>
+<li><p>histogram_quantile()</p>
+</li>
+</ul>
+<p><code>histogram_quantile(φ float, b instant-vector)</code>从<a href="https://prometheus.io/docs/concepts/metric_types/#histogram" target="_blank" rel="noopener">直方图</a>的桶<code>b</code>计算φ-分位数(0≤φ≤1)。(有关φ-分位数的详细解释和直方图指标类型的使用，请参见<a href="https://prometheus.io/docs/practices/histograms" target="_blank" rel="noopener">直方图和摘要</a>。)<code>b</code>中的样本是每个桶中的观察计数。每个样本必须具有标签<code>le</code>，其中标签值表示桶的包含上限。（没有这种标签的样本会被忽略。）<a href="https://prometheus.io/docs/concepts/metric_types/#histogram" target="_blank" rel="noopener">直方图指标</a>类型自动提供带有_bucket后缀和相应标签的时间序列。</p>
+<p>使用<code>rate()</code>函数指定分位数计算的时间窗口。</p>
+<p>示例：直方图指标为http_request_duration_seconds，要计算过去10分钟内请求持续时间的第90个百分位数，请使用以下表达式：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">histogram_quantile(0.9, rate(http_request_duration_seconds_bucket[10m]))</span><br></pre></td></tr></table></figure></p>
+<p>在<code>http_request_duration_seconds</code>中为每个标签组合计算分位数。要聚合,请使用<code>sum()</code>聚合器包裹在<code>rate()</code>函数。由于<code>histogram_quantile()</code>需要<code>le</code>标签，因此必须将其包含在<code>by</code>子句中。 以下表达式按<code>job</code>聚合第90个百分点：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">histogram_quantile(0.9, sum(rate(http_request_duration_seconds_bucket[10m])) by (job, le))</span><br></pre></td></tr></table></figure></p>
+<p>要聚合所有内容，请仅指定le标签：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">histogram_quantile(0.9, sum(rate(http_request_duration_seconds_bucket[10m])) by (le))</span><br></pre></td></tr></table></figure></p>
+<p><code>histogram_quantile()</code>函数通过假设桶内的线性分布来插值分位数值。最高桶必须具有+ Inf的上限。(否则，返回NaN)如果分位数位于最高桶中，则返回第二个最高桶的上限。如果该桶的上限大于0，则假设最低桶的下限为0.在这种情况下，在该桶内应用通常的线性插值。 否则，对于位于最低桶中的分位数，返回最低桶的上限。</p>
+<p>如果<code>b</code>包含少于两个桶，则返回<code>NaN</code>。对于<code>φ&lt;0</code>，返回<code>-Inf</code>。对于<code>φ&gt; 1</code>，返回<code>+Inf</code>。</p>
+<ul>
+<li>holt_winters()</li>
+</ul>
+<p><code>holt_winters(v range-vector,sf scalar,tf scalar)</code>根据v中的范围生成时间序列的平滑值。平滑因子sf越低，对旧数据的重要性越高。趋势因子tf越高，则考虑的数据趋势越多。sf和tf都必须介于0和1之间。</p>
+<p><code>holt_winters</code>只能用于gauge类型。</p>
+<ul>
+<li>hour()</li>
+</ul>
+<p><code>hour(v=vector(time()) instant-vector)</code>以UTC为单位返回每个给定时间的小时。 返回值为0到23。</p>
+<ul>
+<li>idelta()</li>
+</ul>
+<p><code>idelta(v range-vector)</code></p>
+<p><code>idelta(v range-vector)</code>计算范围向量v中最后两个样本之间的差异，返回具有给定增量和等效标签的即时向量。</p>
+<p><code>idelta</code>只能被用于gauge类型。</p>
+<ul>
+<li>increase()</li>
+</ul>
+<p><code>increase(v range-vector)</code>计算范围向量中时间序列的增加。单调性中断（例如由于目标重启而导致的计数器重置）会自动调整。increase外推以覆盖范围向量选择器中指定的全时间范围，因此即使计数器仅以整数增量增加，也可以获得非整数结果。</p>
+<p>以下示例表达式返回范围向量中每个时间系列在过去5分钟内测量的HTTP请求数：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">increase(http_requests_total&#123;job=&quot;api-server&quot;&#125;[5m])</span><br></pre></td></tr></table></figure></p>
+<p><code>increase</code>只应与counter一起使用。它是rate(v)的语法糖乘以指定时间范围窗口下的秒数，应该主要用于人类可读性。在记录规则中使用rate，以便每秒一致地跟踪增量。</p>
+<ul>
+<li>irate()</li>
+</ul>
+<p><code>irate(v range-vector)</code>基于最后两个数据点计算范围向量中时间序列的每秒即时增长率。单调性中断（例如由于目标重启而导致的计数器重置）会自动调整。</p>
+<p>以下示例表达式返回范围向量中每个时间序列的两个最新数据点的最多5分钟的HTTP请求的每秒速率：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">irate(http_requests_total&#123;job=&quot;api-server&quot;&#125;[5m])</span><br></pre></td></tr></table></figure></p>
+<p>只应在绘制易失性及快速移动计数器时使用<code>irate</code>。警报和缓慢移动计数器的使用<code>rate</code>，因为速率的简短更改可以重置<code>FOR子</code>句，并且难以阅读完全由稀有峰值组成的图形。</p>
+<p>注意，当将<code>irate()</code>与聚合运算符(例如sum())或随时间聚合的函数(任何以<code>_over_time</code>结尾的函数)组合时，请始终首先采用<code>irate()</code>，然后进行聚合。否则，当目标重新启动时，<code>irate()</code>无法检测计数器重置。</p>
+<ul>
+<li>label_join()</li>
+</ul>
+<p>对于<code>v</code>中的每个时间序列,<code>label_join(v instant-vector,dst_label string,separator string,src_label_1 string,src_label_2 string，...)</code>使用<code>separator</code>连接所有<code>src_labels</code>的所有值，并返回包含连接的标签<code>dst_label</code>的时间序列值。 此函数中可以有任意数量的src_labels。</p>
+<p>此示例将返回一个向量，每个时间序列都有一个foo标签，其中添加了值a,b,c：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">label_join(up&#123;job=&quot;api-server&quot;,src1=&quot;a&quot;,src2=&quot;b&quot;,src3=&quot;c&quot;&#125;, &quot;foo&quot;, &quot;,&quot;, &quot;src1&quot;, &quot;src2&quot;, &quot;src3&quot;)</span><br></pre></td></tr></table></figure></p>
+<ul>
+<li>label_replace()</li>
+</ul>
+<p>对于<code>v</code>中的每个时间序列，<code>label_replace(v instant-vector, dst_label string, replacement string, src_label string, regex string)</code>将正则表达式<code>regex</code>与标签<code>src_label</code>相匹配。如果匹配，则返回时间序列，标签<code>dst_label</code>替换为<code>replacement</code>。<code>$1</code>替换为第一个匹配的子组，<code>$2</code>替换为第二个等。如果正则表达式不匹配，则返回时间序列不变。</p>
+<p>此示例将返回一个向量，每个时间序列都有一个<code>foo</code>标签，其值为<code>a</code>：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">label_replace(up&#123;job=&quot;api-server&quot;,service=&quot;a:c&quot;&#125;, &quot;foo&quot;, &quot;$1&quot;, &quot;service&quot;, &quot;(.*):.*&quot;)</span><br></pre></td></tr></table></figure></p>
+<ul>
+<li>ln()</li>
+</ul>
+<p><code>ln(v instant-vector)</code>计算v中所有元素的自然对数。特殊情况是：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">ln(+Inf) = +Inf</span><br><span class="line">ln(0) = -Inf</span><br><span class="line">ln(x &lt; 0) = NaN</span><br><span class="line">ln(NaN) = NaN</span><br></pre></td></tr></table></figure></p>
+<ul>
+<li>log2()</li>
+</ul>
+<p><code>log2(v instant-vector)</code>计算v中所有元素的二进制对数。特殊情况等同于<code>ln</code>中的特殊情况。</p>
+<ul>
+<li>log10()</li>
+</ul>
+<p><code>log10(v instant-vector)</code>计算v中所有元素的十进制对数。特殊情况与<code>ln</code>中的相同。</p>
+<ul>
+<li>minute()</li>
+</ul>
+<p><code>minute(v=vector(time()) instant-vector)</code>返回UTC中每个给定时间的小时分钟。 返回值为0到59。</p>
+<ul>
+<li>month()</li>
+</ul>
+<p><code>month(v=vector(time()) instant-vector)</code>返回UTC中每个给定时间的一年中的月份。 返回值为1到12，其中1表示1月等。</p>
+<ul>
+<li>predict_linear()</li>
+</ul>
+<p><code>predict_linear(v range-vector,t scalar)</code>使用<a href="https://en.wikipedia.org/wiki/Simple_linear_regression" target="_blank" rel="noopener">简单线性回归</a>，基于范围向量v预测从现在开始的时间序列t秒的值。</p>
+<p><code>predict_linear</code>只应与gauge一起使用。</p>
+<ul>
+<li>rate()</li>
+</ul>
+<p><code>rate(v range-vector)</code>计算范围向量中时间序列的每秒平均增长率。单调性中断（例如由于目标重启而导致的计数器重置）会自动调整。 此外，计算推断到时间范围的末端，允许错过刮擦或刮擦循环与范围的时间段的不完美对齐。</p>
+<p>以下示例表达式返回范围向量中每个时间系列在过去5分钟内测量的每秒HTTP请求率：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">rate(http_requests_total&#123;job=&quot;api-server&quot;&#125;[5m])</span><br></pre></td></tr></table></figure></p>
+<p><code>rate</code>应仅用于计数器。它最适用于警报和缓慢移动计数器的图形。</p>
+<p>注意，当将<code>rate()</code>与聚合运算符(例如<code>sum()</code>)或随时间聚合的函数（任何以<code>_over_time</code>结尾的函数）组合时，始终首先采用<code>rate()</code>，然后聚合。否则，当目标重新启动时，<code>rate()</code>无法检测计数器重置。</p>
+<ul>
+<li>resets()</li>
+</ul>
+<p>对于每个输入时间序列，<code>reset(v range-vector)</code>将提供的时间范围内的计数器复位数作为即时向量返回。两个连续样本之间的值的任何减少都被解释为计数器重置。</p>
+<p><code>resets</code>仅被用于counters.</p>
+<ul>
+<li>round()</li>
+</ul>
+<p><code>round(v instant-vector,to_nearest = 1 scalar)</code>将v中所有元素的样本值舍入为最接近的整数。通过四舍五入解决关系。可选的<code>to_nearest</code>参数允许指定样本值应舍入的最近倍数。 这个倍数也可能是一个分数。</p>
+<ul>
+<li>scalar()</li>
+</ul>
+<p>给定单元素输入向量，<code>scalar(v instant-vector)</code>将该单个元素的样本值作为标量返回。如果输入向量不具有恰好一个元素，则标量将返回NaN。</p>
+<ul>
+<li>sort()</li>
+</ul>
+<p><code>sort(v instant-vector)</code>按升序返回按其样本值排序的向量元素。</p>
+<ul>
+<li>sort_desc()</li>
+</ul>
+<p>与<code>sort</code>相同，但按降序排序。</p>
+<ul>
+<li>sqrt()</li>
+</ul>
+<p><code>sqrt(v instant-vector)</code>计算v中所有元素的平方根。</p>
+<ul>
+<li>time()</li>
+</ul>
+<p><code>time()</code>返回自1970年1月1日UTC以来的秒数。请注意，这实际上并不返回当前时间，而是返回计算表达式的时间。</p>
+<ul>
+<li>timestamp()</li>
+</ul>
+<p><code>timestamp(v instant-vector)</code>返回给定向量的每个样本的时间戳，作为自1970年1月1日UTC以来的秒数。</p>
+<p>此函数于Prometheus 2.0中添加。</p>
+<ul>
+<li>vector()</li>
+</ul>
+<p><code>vector(s scalar)</code>将标量<code>s</code>作为没有标签的向量返回。</p>
+<ul>
+<li>year()</li>
+</ul>
+<p><code>year(v=vector(time()) instant-vector)</code>返回UTC中每个给定时间的年份。</p>
+<ul>
+<li><code>&lt;aggregation&gt;</code>_over_time()</li>
+</ul>
+<p>以下函数允许聚合给定范围向量的每个系列随时间的变化并返回具有每系列聚合结果的即时向量：</p>
+<ul>
+<li>avg_over_time(range-vector):指定区间内所有点的平均值。</li>
+<li>min_over_time(range-vector):指定时间间隔内所有点的最小值。</li>
+<li>max_over_time(range-vector):指定时间间隔内所有点的最大值。</li>
+<li>sum_over_time(range-vector):指定时间间隔内所有值的总和。</li>
+<li>count_over_time(range-vector):指定时间间隔内所有值的计数。</li>
+<li>quantile_over_time(scalar, range-vector):指定间隔内的值的φ-分位数（0≤φ≤1）。</li>
+<li>stddev_over_time(range-vector):指定区间内值的总体标准方差。</li>
+<li>stdvar_over_time(range-vector): 指定区间中值的总体标准差。</li>
+</ul>
+<p>请注意，即使值在整个时间间隔内的间隔不均匀，指定时间间隔内的所有值在聚合中都具有相同的权重。</p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/prometheus/" rel="tag"># prometheus</a>
+          
+            <a href="/tags/监控/" rel="tag"># 监控</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/03/23/prometheus/query/prometheus-querying-operators/" rel="next" title="prometheus查询-运算符">
+                <i class="fa fa-chevron-left"></i> prometheus查询-运算符
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2019/03/23/prometheus/query/prometheus-quering-examples/" rel="prev" title="prometheus查询-举例">
+                prometheus查询-举例 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  
+    <div class="comments" id="comments">
+      
+        <div id="gitment-container"></div>
+      
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+
+      <section class="site-overview-wrap sidebar-panel sidebar-panel-active">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Arthur</p>
+              <p class="site-description motion-element" itemprop="description">Personal Blog, Notes and Everything should be kept</p>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">61</span>
+                    <span class="site-state-item-name">posts</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  <a href="/categories/index.html">
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">6</span>
+                    <span class="site-state-item-name">categories</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  <a href="/tags/index.html">
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">34</span>
+                    <span class="site-state-item-name">tags</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+            <div class="feed-link motion-element">
+              <a href="/atom.xml" rel="alternate">
+                <i class="fa fa-rss"></i>
+                RSS
+              </a>
+            </div>
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </section>
+
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Arthur</span>
+
+  
+
+  
+</div>
+
+
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> v3.7.1</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://theme-next.org">NexT.Pisces</a> v6.3.0</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=6.3.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=6.3.0"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=6.3.0"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=6.3.0"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=6.3.0"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=6.3.0"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=6.3.0"></script>
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+<!-- LOCAL: You can save these files to your site and update links -->
+    
+        
+        <link rel="stylesheet" href="https://aimingoo.github.io/gitmint/style/default.css">
+        <script src="https://aimingoo.github.io/gitmint/dist/gitmint.browser.js"></script>
+    
+<!-- END LOCAL -->
+
+    
+
+    
+      <script type="text/javascript">
+      function renderGitment(){
+        var gitment = new Gitmint({
+            id: window.location.pathname,
+            owner: 'ShingYang',
+            repo: 'ShingYang.github.io',
+            
+            lang: "" || navigator.language || navigator.systemLanguage || navigator.userLanguage,
+            
+            oauth: {
+            
+            
+                client_secret: '23e4590b8427cdef66c3c0038c9fb29dfd9106bc',
+            
+                client_id: '3971199b02eb0109e893'
+            }});
+        gitment.render('gitment-container');
+      }
+
+      
+      renderGitment();
+      
+      </script>
+    
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=6.3.0" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=6.3.0">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=6.3.0" color="#222">
+
+
+
+
+
+
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '6.3.0',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="this的用法，在什么时候使用?一般四种 在一般函数方法中使用 this 指代全局对象 123456function test()&amp;#123;　　　this.x = 1;　　　alert(this.x);&amp;#125;test(); // 1console.log(x)//1  作为对象方法调用，this 指代上级对象 1234567function test()&amp;#123;　　alert(this">
+<meta name="keywords" content="nodejs,js">
+<meta property="og:type" content="article">
+<meta property="og:title" content="初学nodejs的几个问题">
+<meta property="og:url" content="http://blog.yapo.fun/2018/07/05/nodejs/初学nodejs的几个问题/index.html">
+<meta property="og:site_name" content="Arthur&#39;s Blog">
+<meta property="og:description" content="this的用法，在什么时候使用?一般四种 在一般函数方法中使用 this 指代全局对象 123456function test()&amp;#123;　　　this.x = 1;　　　alert(this.x);&amp;#125;test(); // 1console.log(x)//1  作为对象方法调用，this 指代上级对象 1234567function test()&amp;#123;　　alert(this">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2019-11-11T13:26:06.037Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="初学nodejs的几个问题">
+<meta name="twitter:description" content="this的用法，在什么时候使用?一般四种 在一般函数方法中使用 this 指代全局对象 123456function test()&amp;#123;　　　this.x = 1;　　　alert(this.x);&amp;#125;test(); // 1console.log(x)//1  作为对象方法调用，this 指代上级对象 1234567function test()&amp;#123;　　alert(this">
+
+
+
+  <link rel="alternate" href="/atom.xml" title="Arthur's Blog" type="application/atom+xml" />
+
+
+
+
+  <link rel="canonical" href="http://blog.yapo.fun/2018/07/05/nodejs/初学nodejs的几个问题/"/>
+
+
+
+<script type="text/javascript" id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>初学nodejs的几个问题 | Arthur's Blog</title>
+  
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style type="text/css">
+    .use-motion .motion-element,
+    .use-motion .brand,
+    .use-motion .menu-item,
+    .sidebar-inner,
+    .use-motion .post-block,
+    .use-motion .pagination,
+    .use-motion .comments,
+    .use-motion .post-header,
+    .use-motion .post-body,
+    .use-motion .collection-title { opacity: initial; }
+
+    .use-motion .logo,
+    .use-motion .site-title,
+    .use-motion .site-subtitle {
+      opacity: initial;
+      top: initial;
+    }
+
+    .use-motion {
+      .logo-line-before i { left: initial; }
+      .logo-line-after i { right: initial; }
+    }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Arthur's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="Toggle navigation bar">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+    <a href="/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-home"></i> <br />Home</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+    <a href="/tags/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />Tags</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+    <a href="/categories/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-th"></i> <br />Categories</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+    <a href="/archives/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />Archives</a>
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://blog.yapo.fun/2018/07/05/nodejs/初学nodejs的几个问题/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Arthur">
+      <meta itemprop="description" content="Personal Blog, Notes and Everything should be kept">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Arthur's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">初学nodejs的几个问题
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+
+              
+                
+              
+
+              <time title="Created: 2018-07-05 23:36:20" itemprop="dateCreated datePublished" datetime="2018-07-05T23:36:20+08:00">2018-07-05</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">Edited on</span>
+                
+                <time title="Modified: 2019-11-11 21:26:06" itemprop="dateModified" datetime="2019-11-11T21:26:06+08:00">2019-11-11</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/nodejs/" itemprop="url" rel="index"><span itemprop="name">nodejs</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/07/05/nodejs/初学nodejs的几个问题/#comments" itemprop="discussionUrl">
+                  <span class="post-meta-item-text">Comments: </span> <span class="post-comments-count gitment-comments-count" data-xid="/2018/07/05/nodejs/初学nodejs的几个问题/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="this的用法，在什么时候使用-一般四种"><a href="#this的用法，在什么时候使用-一般四种" class="headerlink" title="this的用法，在什么时候使用?一般四种"></a>this的用法，在什么时候使用?<a href="https://www.cnblogs.com/pabitel/p/5922511.html" target="_blank" rel="noopener">一般四种</a></h2><ol>
+<li><p>在一般函数方法中使用 this 指代全局对象</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">function test()&#123;</span><br><span class="line">　　　this.x = 1;</span><br><span class="line">　　　alert(this.x);</span><br><span class="line">&#125;</span><br><span class="line">test(); // 1</span><br><span class="line">console.log(x)//1</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>作为对象方法调用，this 指代上级对象</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">function test()&#123;</span><br><span class="line">　　alert(this.x);</span><br><span class="line">&#125;</span><br><span class="line">var o = &#123;&#125;;</span><br><span class="line">o.x = 1;</span><br><span class="line">o.m = test;</span><br><span class="line">o.m(); // 1</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>作为构造函数调用，this 指代new 出的对象</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">function test()&#123;</span><br><span class="line">　　this.x = 1;</span><br><span class="line">&#125;</span><br><span class="line">var o = new test();</span><br><span class="line">alert(o.x); // 1</span><br><span class="line">//运行结果为1。为了表明这时this不是全局对象，我对代码做一些改变：</span><br><span class="line">var x = 2;</span><br><span class="line">function test()&#123;</span><br><span class="line">　　this.x = 1;</span><br><span class="line">&#125;</span><br><span class="line">var o = new test();</span><br><span class="line">alert(x); //2</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>apply 调用 ，apply方法作用是改变函数的调用对象，此方法的第一个参数为改变后调用这个函数的对象，this指代第一个参数</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">var x = 0;</span><br><span class="line">function test()&#123;</span><br><span class="line">　　alert(this.x);</span><br><span class="line">&#125;</span><br><span class="line">var o=&#123;&#125;;</span><br><span class="line">o.x = 1;</span><br><span class="line">o.m = test;</span><br><span class="line">o.m.apply(); //0</span><br><span class="line">//apply()的参数为空时，默认调用全局对象。因此，这时的运行结果为0，证明this指的是全局对象。如果把最后一行代码修改为</span><br><span class="line">o.m.apply(o); //1</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<h2 id="const在什么时候使用"><a href="#const在什么时候使用" class="headerlink" title="const在什么时候使用"></a>const在什么时候使用</h2><p>const和let一样是块范围的(block-scoped),被const声明的变量不能被重新赋值或者重新声明。注意，const只是创建了一个只读的变量的引用，并不表示变量变量是不可变的。变量的函数或者属性可以随便调用与赋值。<br><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/const" target="_blank" rel="noopener">MDN官方文档</a></p>
+<h2 id="var-let什么关系"><a href="#var-let什么关系" class="headerlink" title="var, let什么关系"></a>var, let什么关系</h2><p>let和var的区别，var要么是函数范围内的要么是全局的，没有块的概念。let则是块范围的。</p>
+<blockquote>
+<p>let allows you to declare variables that are limited in scope to the block, statement, or expression on which it is used. This is unlike the var &gt;keyword, which defines a variable globally, or locally to an entire function regardless of block scope.<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br></pre></td><td class="code"><pre><span class="line">// i IS NOT known here</span><br><span class="line">// j IS NOT known here</span><br><span class="line">// k IS known here, but undefined</span><br><span class="line">// l IS NOT known here</span><br><span class="line"></span><br><span class="line">function loop(arr) &#123;</span><br><span class="line">    // i IS known here, but undefined</span><br><span class="line">    // j IS NOT known here</span><br><span class="line">    // k IS known here, but has a value only the second time loop is called</span><br><span class="line">    // l IS NOT known here</span><br><span class="line"></span><br><span class="line">    for( var i = 0; i &lt; arr.length; i++ ) &#123;</span><br><span class="line">        // i IS known here, and has a value</span><br><span class="line">        // j IS NOT known here</span><br><span class="line">        // k IS known here, but has a value only the second time loop is called</span><br><span class="line">        // l IS NOT known here</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    // i IS known here, and has a value</span><br><span class="line">    // j IS NOT known here</span><br><span class="line">    // k IS known here, but has a value only the second time loop is called</span><br><span class="line">    // l IS NOT known here</span><br><span class="line"></span><br><span class="line">    for( let j = 0; j &lt; arr.length; j++ ) &#123;</span><br><span class="line">        // i IS known here, and has a value</span><br><span class="line">        // j IS known here, and has a value</span><br><span class="line">        // k IS known here, but has a value only the second time loop is called</span><br><span class="line">        // l IS NOT known here</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">    // i IS known here, and has a value</span><br><span class="line">    // j IS NOT known here</span><br><span class="line">    // k IS known here, but has a value only the second time loop is called</span><br><span class="line">    // l IS NOT known here</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">loop([1,2,3,4]);</span><br><span class="line"></span><br><span class="line">for( var k = 0; k &lt; arr.length; k++ ) &#123;</span><br><span class="line">    // i IS NOT known here</span><br><span class="line">    // j IS NOT known here</span><br><span class="line">    // k IS known here, and has a value</span><br><span class="line">    // l IS NOT known here</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">for( let l = 0; l &lt; arr.length; l++ ) &#123;</span><br><span class="line">    // i IS NOT known here</span><br><span class="line">    // j IS NOT known here</span><br><span class="line">    // k IS known here, and has a value</span><br><span class="line">    // l IS known here, and has a value</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">loop([1,2,3,4]);</span><br><span class="line"></span><br><span class="line">// i IS NOT known here</span><br><span class="line">// j IS NOT known here</span><br><span class="line">// k IS known here, and has a value</span><br><span class="line">// l IS NOT known here</span><br></pre></td></tr></table></figure></p>
+</blockquote>
+<h2 id="exports-module-exports-和-module什么关系"><a href="#exports-module-exports-和-module什么关系" class="headerlink" title="exports, module.exports 和 module什么关系"></a>exports, module.exports 和 module什么关系</h2><p>看V8.x稳定版的<a href="https://nodejs.org/dist/latest-v8.x/docs/api/modules.html" target="_blank" rel="noopener">官方文档</a>有详细解释。</p>
+<ul>
+<li>exports是module.exports的快捷方式(<a href="https://nodejs.org/dist/latest-v8.x/docs/api/modules.html#modules_exports_shortcut" target="_blank" rel="noopener">exports shortcut</a>)</li>
+<li>在文件内，module.exports.f = … 可以简写为 exports.f = …. </li>
+<li><p>exports用于<em>文件范围内</em>，而module.exports则和<em>require</em>函数相关，为require函数的返回值。E.g.</p>
+<blockquote>
+<p>The exports variable is available within a module’s file-level scope, and is assigned the value of module.exports before the module is evaluated.</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">module.exports.hello = true; // Exported from require of module</span><br><span class="line">exports = &#123; hello: false &#125;;  // Not exported, only available in the module</span><br></pre></td></tr></table></figure>
+</blockquote>
+</li>
+<li><p>常用写法</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">module.exports = exports = function Constructor() &#123;</span><br><span class="line">  // ... etc.</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>require的假想实现（只是为了说明module.exports和exports的关系）,require使用的是module.exports而非exports</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">function require(/* ... */) &#123;</span><br><span class="line">  const module = &#123; exports: &#123;&#125; &#125;;</span><br><span class="line">  ((module, exports) =&gt; &#123;</span><br><span class="line">    // Module code here. In this example, define a function.</span><br><span class="line">    function someFunc() &#123;&#125;</span><br><span class="line">    exports = someFunc;</span><br><span class="line">    // At this point, exports is no longer a shortcut to module.exports, and</span><br><span class="line">    // this module will still export an empty default object.</span><br><span class="line">    module.exports = someFunc;</span><br><span class="line">    // At this point, the module will now export someFunc, instead of the</span><br><span class="line">    // default object.</span><br><span class="line">  &#125;)(module, module.exports);</span><br><span class="line">  return module.exports;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>require()函数，寻找module的过程。详细解释顺着<a href="https://nodejs.org/dist/latest-v8.x/docs/api/modules.html#modules_all_together" target="_blank" rel="noopener">这</a>往下看。写几个要点</p>
+</li>
+</ul>
+<ol>
+<li>core module直接返回</li>
+<li>‘/‘从root路径开始找</li>
+<li>‘./, ../‘相对路径找</li>
+<li>去node module里着，递归向上找包含node_modules的路径。</li>
+<li>抛异常 “not found”<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line">require(X) from module at path Y</span><br><span class="line">1. If X is a core module,</span><br><span class="line">   a. return the core module</span><br><span class="line">   b. STOP</span><br><span class="line">2. If X begins with &apos;/&apos;</span><br><span class="line">   a. set Y to be the filesystem root</span><br><span class="line">3. If X begins with &apos;./&apos; or &apos;/&apos; or &apos;../&apos;</span><br><span class="line">   a. LOAD_AS_FILE(Y + X)</span><br><span class="line">   b. LOAD_AS_DIRECTORY(Y + X)</span><br><span class="line">4. LOAD_NODE_MODULES(X, dirname(Y))</span><br><span class="line">5. THROW &quot;not found&quot;</span><br><span class="line"></span><br><span class="line">LOAD_AS_FILE(X)</span><br><span class="line">1. If X is a file, load X as JavaScript text.  STOP</span><br><span class="line">2. If X.js is a file, load X.js as JavaScript text.  STOP</span><br><span class="line">3. If X.json is a file, parse X.json to a JavaScript Object.  STOP</span><br><span class="line">4. If X.node is a file, load X.node as binary addon.  STOP</span><br><span class="line"></span><br><span class="line">LOAD_INDEX(X)</span><br><span class="line">1. If X/index.js is a file, load X/index.js as JavaScript text.  STOP</span><br><span class="line">2. If X/index.json is a file, parse X/index.json to a JavaScript object. STOP</span><br><span class="line">3. If X/index.node is a file, load X/index.node as binary addon.  STOP</span><br><span class="line"></span><br><span class="line">LOAD_AS_DIRECTORY(X)</span><br><span class="line">1. If X/package.json is a file,</span><br><span class="line">   a. Parse X/package.json, and look for &quot;main&quot; field.</span><br><span class="line">   b. let M = X + (json main field)</span><br><span class="line">   c. LOAD_AS_FILE(M)</span><br><span class="line">   d. LOAD_INDEX(M)</span><br><span class="line">2. LOAD_INDEX(X)</span><br><span class="line"></span><br><span class="line">LOAD_NODE_MODULES(X, START)</span><br><span class="line">1. let DIRS=NODE_MODULES_PATHS(START)</span><br><span class="line">2. for each DIR in DIRS:</span><br><span class="line">   a. LOAD_AS_FILE(DIR/X)</span><br><span class="line">   b. LOAD_AS_DIRECTORY(DIR/X)</span><br><span class="line"></span><br><span class="line">NODE_MODULES_PATHS(START)</span><br><span class="line">1. let PARTS = path split(START)</span><br><span class="line">2. let I = count of PARTS - 1</span><br><span class="line">3. let DIRS = []</span><br><span class="line">4. while I &gt;= 0,</span><br><span class="line">   a. if PARTS[I] = &quot;node_modules&quot; CONTINUE</span><br><span class="line">   b. DIR = path join(PARTS[0 .. I] + &quot;node_modules&quot;)</span><br><span class="line">   c. DIRS = DIRS + DIR</span><br><span class="line">   d. let I = I - 1</span><br><span class="line">5. return DIRS</span><br></pre></td></tr></table></figure>
+</li>
+</ol>
+<h2 id="prototype什么时候使用"><a href="#prototype什么时候使用" class="headerlink" title="prototype什么时候使用"></a>prototype什么时候使用</h2><p>Object.prototype:可以为所有 Object 类型的对象添加属性。属性是所有对象共有的，对象通过new来获取，如：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">function Func()&#123;</span><br><span class="line">    console.log(&quot;in Func&quot;)</span><br><span class="line">&#125;</span><br><span class="line">Func.prototype.greet = function()&#123;</span><br><span class="line">    console.log(&apos;in greeting&apos;)</span><br><span class="line">&#125;</span><br><span class="line">var f = new Func(); //output &quot;in Func&quot;</span><br><span class="line">f.greet(); //output &quot;in greeting&quot;. 这里可以看出是可以访问prototype定义的函数的</span><br></pre></td></tr></table></figure></p>
+<p>更复杂的是可以做hook或者构造子类,<a href="https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Object/prototype" target="_blank" rel="noopener">MDN官网有例子</a>。</p>
+<h2 id="js中有没有key是string类型的字典？"><a href="#js中有没有key是string类型的字典？" class="headerlink" title="js中有没有key是string类型的字典？"></a>js中有没有key是string类型的字典？</h2><p>js中创建对象可以是：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">var car = &#123;</span><br><span class="line">    length:3,</span><br><span class="line">    brand:&quot;bba&quot;</span><br><span class="line">&#125;</span><br><span class="line">console.log(car.length)</span><br><span class="line">console.log(car[&apos;length&apos;])</span><br></pre></td></tr></table></figure></p>
+<p>然后可以通过car.brand对对象car的属性brand进行访问<br>在ubuntu18.04测试car[‘brand’]也是可用的</p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/nodejs/" rel="tag"># nodejs</a>
+          
+            <a href="/tags/js/" rel="tag"># js</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/07/06/nodejs/ES6-and-Beyond/" rel="prev" title="ES6 and Beyond">
+                ES6 and Beyond <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  
+    <div class="comments" id="comments">
+      
+        <div id="gitment-container"></div>
+      
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Arthur</p>
+              <p class="site-description motion-element" itemprop="description">Personal Blog, Notes and Everything should be kept</p>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">61</span>
+                    <span class="site-state-item-name">posts</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  <a href="/categories/index.html">
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">6</span>
+                    <span class="site-state-item-name">categories</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  <a href="/tags/index.html">
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">34</span>
+                    <span class="site-state-item-name">tags</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+            <div class="feed-link motion-element">
+              <a href="/atom.xml" rel="alternate">
+                <i class="fa fa-rss"></i>
+                RSS
+              </a>
+            </div>
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#this的用法，在什么时候使用-一般四种"><span class="nav-number">1.</span> <span class="nav-text">this的用法，在什么时候使用?一般四种</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#const在什么时候使用"><span class="nav-number">2.</span> <span class="nav-text">const在什么时候使用</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#var-let什么关系"><span class="nav-number">3.</span> <span class="nav-text">var, let什么关系</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#exports-module-exports-和-module什么关系"><span class="nav-number">4.</span> <span class="nav-text">exports, module.exports 和 module什么关系</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#prototype什么时候使用"><span class="nav-number">5.</span> <span class="nav-text">prototype什么时候使用</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#js中有没有key是string类型的字典？"><span class="nav-number">6.</span> <span class="nav-text">js中有没有key是string类型的字典？</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Arthur</span>
+
+  
+
+  
+</div>
+
+
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> v3.7.1</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://theme-next.org">NexT.Pisces</a> v6.3.0</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=6.3.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=6.3.0"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=6.3.0"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=6.3.0"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=6.3.0"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=6.3.0"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=6.3.0"></script>
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+<!-- LOCAL: You can save these files to your site and update links -->
+    
+        
+        <link rel="stylesheet" href="https://aimingoo.github.io/gitmint/style/default.css">
+        <script src="https://aimingoo.github.io/gitmint/dist/gitmint.browser.js"></script>
+    
+<!-- END LOCAL -->
+
+    
+
+    
+      <script type="text/javascript">
+      function renderGitment(){
+        var gitment = new Gitmint({
+            id: window.location.pathname,
+            owner: 'ShingYang',
+            repo: 'ShingYang.github.io',
+            
+            lang: "" || navigator.language || navigator.systemLanguage || navigator.userLanguage,
+            
+            oauth: {
+            
+            
+                client_secret: '23e4590b8427cdef66c3c0038c9fb29dfd9106bc',
+            
+                client_id: '3971199b02eb0109e893'
+            }});
+        gitment.render('gitment-container');
+      }
+
+      
+      renderGitment();
+      
+      </script>
+    
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

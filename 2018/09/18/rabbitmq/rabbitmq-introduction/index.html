@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=6.3.0" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=6.3.0">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=6.3.0" color="#222">
+
+
+
+
+
+
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '6.3.0',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="源自官方文档 介绍前提: 本教程假定RabbitMQ已在标准端口（5672）上的localhost上安装并运行。 如果您使用不同的主机，端口或凭据，则需要调整连接设置。 RabbitMQ是一个消息代理(broker)：它接受和转发消息。 您可以将其视为邮局：当您将要发布的邮件放在邮箱中时，您可以确信邮递员一定会把邮件送到收件人那里。 在这个比喻中，RabbitMQ是邮箱，邮局和邮递员。 Rabbi">
+<meta name="keywords" content="golang,rabbitmq">
+<meta property="og:type" content="article">
+<meta property="og:title" content="rabbitmq入门介绍">
+<meta property="og:url" content="http://blog.yapo.fun/2018/09/18/rabbitmq/rabbitmq-introduction/index.html">
+<meta property="og:site_name" content="Arthur&#39;s Blog">
+<meta property="og:description" content="源自官方文档 介绍前提: 本教程假定RabbitMQ已在标准端口（5672）上的localhost上安装并运行。 如果您使用不同的主机，端口或凭据，则需要调整连接设置。 RabbitMQ是一个消息代理(broker)：它接受和转发消息。 您可以将其视为邮局：当您将要发布的邮件放在邮箱中时，您可以确信邮递员一定会把邮件送到收件人那里。 在这个比喻中，RabbitMQ是邮箱，邮局和邮递员。 Rabbi">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:image" content="http://blog.yapo.fun/images/rabbitmq/producer.png">
+<meta property="og:image" content="http://blog.yapo.fun/images/rabbitmq/queue.png">
+<meta property="og:image" content="http://blog.yapo.fun/images/rabbitmq/consumer.png">
+<meta property="og:image" content="http://blog.yapo.fun/images/rabbitmq/python-one.png">
+<meta property="og:image" content="http://blog.yapo.fun/images/rabbitmq/sending.png">
+<meta property="og:image" content="http://blog.yapo.fun/images/rabbitmq/receiving.png">
+<meta property="og:updated_time" content="2019-11-11T13:26:06.037Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="rabbitmq入门介绍">
+<meta name="twitter:description" content="源自官方文档 介绍前提: 本教程假定RabbitMQ已在标准端口（5672）上的localhost上安装并运行。 如果您使用不同的主机，端口或凭据，则需要调整连接设置。 RabbitMQ是一个消息代理(broker)：它接受和转发消息。 您可以将其视为邮局：当您将要发布的邮件放在邮箱中时，您可以确信邮递员一定会把邮件送到收件人那里。 在这个比喻中，RabbitMQ是邮箱，邮局和邮递员。 Rabbi">
+<meta name="twitter:image" content="http://blog.yapo.fun/images/rabbitmq/producer.png">
+
+
+
+  <link rel="alternate" href="/atom.xml" title="Arthur's Blog" type="application/atom+xml" />
+
+
+
+
+  <link rel="canonical" href="http://blog.yapo.fun/2018/09/18/rabbitmq/rabbitmq-introduction/"/>
+
+
+
+<script type="text/javascript" id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>rabbitmq入门介绍 | Arthur's Blog</title>
+  
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style type="text/css">
+    .use-motion .motion-element,
+    .use-motion .brand,
+    .use-motion .menu-item,
+    .sidebar-inner,
+    .use-motion .post-block,
+    .use-motion .pagination,
+    .use-motion .comments,
+    .use-motion .post-header,
+    .use-motion .post-body,
+    .use-motion .collection-title { opacity: initial; }
+
+    .use-motion .logo,
+    .use-motion .site-title,
+    .use-motion .site-subtitle {
+      opacity: initial;
+      top: initial;
+    }
+
+    .use-motion {
+      .logo-line-before i { left: initial; }
+      .logo-line-after i { right: initial; }
+    }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Arthur's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="Toggle navigation bar">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+    <a href="/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-home"></i> <br />Home</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+    <a href="/tags/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />Tags</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+    <a href="/categories/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-th"></i> <br />Categories</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+    <a href="/archives/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />Archives</a>
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://blog.yapo.fun/2018/09/18/rabbitmq/rabbitmq-introduction/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Arthur">
+      <meta itemprop="description" content="Personal Blog, Notes and Everything should be kept">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Arthur's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">rabbitmq入门介绍
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+
+              
+                
+              
+
+              <time title="Created: 2018-09-18 16:35:55" itemprop="dateCreated datePublished" datetime="2018-09-18T16:35:55+08:00">2018-09-18</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">Edited on</span>
+                
+                <time title="Modified: 2019-11-11 21:26:06" itemprop="dateModified" datetime="2019-11-11T21:26:06+08:00">2019-11-11</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/rabbitmq/" itemprop="url" rel="index"><span itemprop="name">rabbitmq</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/09/18/rabbitmq/rabbitmq-introduction/#comments" itemprop="discussionUrl">
+                  <span class="post-meta-item-text">Comments: </span> <span class="post-comments-count gitment-comments-count" data-xid="/2018/09/18/rabbitmq/rabbitmq-introduction/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p><a href="https://www.rabbitmq.com/tutorials/tutorial-one-go.html" target="_blank" rel="noopener">源自官方文档</a></p>
+<h3 id="介绍"><a href="#介绍" class="headerlink" title="介绍"></a>介绍</h3><p><strong>前提:</strong> 本教程假定RabbitMQ已在标准端口（5672）上的localhost上<a href="https://www.rabbitmq.com/download.html" target="_blank" rel="noopener"><strong>安装</strong></a>并运行。 如果您使用不同的主机，端口或凭据，则需要调整连接设置。</p>
+<p>RabbitMQ是一个消息代理(broker)：它接受和转发消息。 您可以将其视为邮局：当您将要发布的邮件放在邮箱中时，您可以确信邮递员一定会把邮件送到收件人那里。 在这个比喻中，RabbitMQ是邮箱，邮局和邮递员。</p>
+<p>RabbitMQ和邮局之间的主要区别在于它不处理纸张，而是接受，存储和转发二进制blob数据 - <em>消息</em>。</p>
+<p>RabbitMQ和一般的消息传递使用了一些术语。</p>
+<p><em>生产只不过是发送(Producing means nothing more than sending)。 发送消息的程序是生产者：</em></p>
+<div align="center"><br><img src="/images/rabbitmq/producer.png" alt="producer"><br></div>
+
+<p><em>队列(a queue)</em>是RabbitMQ中的邮箱的名称。 虽然消息流经RabbitMQ和您的应用程序，但它们只能存储在<em>队列</em>中。 <em>队列</em>仅受主机的内存和磁盘限制的约束，它本质上是一个大的消息缓冲区。 许多<em>生产者</em>可以发送到一个队列的消息，并且许多<em>消费者</em>可以尝试从一个队列接收数据。 这就是我们代表队列的方式：</p>
+<div align="center"><br><img src="/images/rabbitmq/queue.png" alt="producer"><br></div>
+
+<p>消费(consuming)与接受(receiving)有类似的意义。 <em>消费者</em>是一个主要等待接收消息的程序：</p>
+<div align="center"><br><img src="/images/rabbitmq/consumer.png" alt="producer"><br></div>
+
+<p>请注意，生产者，消费者和代理不必位于同一主机上; 实际上在大多数应用中都不会这么做。</p>
+<h3 id="“Hello-World”"><a href="#“Hello-World”" class="headerlink" title="“Hello World”"></a>“Hello World”</h3><p><strong>(使用Go RabbitMQ客户端)</strong><br>在本教程的这一部分中，我们将在Go中编写两个小程序; 发送单个消息的生产者，以及接收消息并将其打印出来的消费者。 先来个热身，我们将掩盖<a href="http://godoc.org/github.com/streadway/amqp" target="_blank" rel="noopener">Go RabbitMQ</a> API中的一些细节，专注于这个非常简单的事情。 只是简单的传递消息“Hello World”。</p>
+<p>在下图中，“P”是我们的生产者，“C”是我们的消费者。 中间的框是一个队列 - RabbitMQ代表消费者保留的消息缓冲区。</p>
+<div align="center"><br><img src="/images/rabbitmq/python-one.png" alt="producer"><br></div>
+
+<p><strong>Go RabbitMQ 客户端函数库</strong></p>
+<p>RabbitMQ支持多种协议。 本教程使用AMQP 0-9-1，它是一种开放的，通用的消息传递协议。 RabbitMQ有许多不同语言的客户端。 我们将在本教程中使用Go amqp客户端。</p>
+<p>首先，使用go get安装amqp：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">go get github.com/streadway/amqp</span><br></pre></td></tr></table></figure></p>
+<p>现在我们安装好了amqp，可以开始写代码了。</p>
+<h3 id="发送消息-sending"><a href="#发送消息-sending" class="headerlink" title="发送消息(sending)"></a>发送消息(sending)</h3><p><div align="center"><br><img src="/images/rabbitmq/sending.png" alt="producer"><br></div><br>我们会将我们的消息发布者（发件人）send.go和我们的消息使用者（接收者）称为receive.go。 发布者将连接到RabbitMQ，发送单个消息，然后退出。</p>
+<p>在<a href="https://github.com/rabbitmq/rabbitmq-tutorials/blob/master/go/send.go" target="_blank" rel="noopener">send.go</a>中，我们需要先import已安装好的库：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">  <span class="string">"fmt"</span></span><br><span class="line">  <span class="string">"log"</span></span><br><span class="line"></span><br><span class="line">  <span class="string">"github.com/streadway/amqp"</span></span><br><span class="line">)</span><br></pre></td></tr></table></figure></p>
+<p>我们还需要一个辅助函数来检查每个amqp调用的返回值：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">failOnError</span><span class="params">(err error, msg <span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">  <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">    log.Fatalf(<span class="string">"%s: %s"</span>, msg, err)</span><br><span class="line">    <span class="built_in">panic</span>(fmt.Sprintf(<span class="string">"%s: %s"</span>, msg, err))</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>然后连接RabbitMQ服务器：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">conn, err := amqp.Dial(<span class="string">"amqp://guest:guest@localhost:5672/"</span>)</span><br><span class="line">failOnError(err, <span class="string">"Failed to connect to RabbitMQ"</span>)</span><br><span class="line"><span class="keyword">defer</span> conn.Close()</span><br></pre></td></tr></table></figure></p>
+<p>连接抽象了套接字连接，并为我们负责协议版本协商和身份验证等。 接下来，我们创建一个频道，这是完成任务的大部分API所在的位置：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ch, err := conn.Channel()</span><br><span class="line">failOnError(err, <span class="string">"Failed to open a channel"</span>)</span><br><span class="line"><span class="keyword">defer</span> ch.Close()</span><br></pre></td></tr></table></figure></p>
+<p>为了发送，我们必须声明一个队列供我们发送; 然后我们可以向队列发布消息：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">q, err := ch.QueueDeclare(</span><br><span class="line">  <span class="string">"hello"</span>, <span class="comment">// name</span></span><br><span class="line">  <span class="literal">false</span>,   <span class="comment">// durable</span></span><br><span class="line">  <span class="literal">false</span>,   <span class="comment">// delete when unused</span></span><br><span class="line">  <span class="literal">false</span>,   <span class="comment">// exclusive</span></span><br><span class="line">  <span class="literal">false</span>,   <span class="comment">// no-wait</span></span><br><span class="line">  <span class="literal">nil</span>,     <span class="comment">// arguments</span></span><br><span class="line">)</span><br><span class="line">failOnError(err, <span class="string">"Failed to declare a queue"</span>)</span><br><span class="line"></span><br><span class="line">body := <span class="string">"Hello World!"</span></span><br><span class="line">err = ch.Publish(</span><br><span class="line">  <span class="string">""</span>,     <span class="comment">// exchange</span></span><br><span class="line">  q.Name, <span class="comment">// routing key</span></span><br><span class="line">  <span class="literal">false</span>,  <span class="comment">// mandatory</span></span><br><span class="line">  <span class="literal">false</span>,  <span class="comment">// immediate</span></span><br><span class="line">  amqp.Publishing &#123;</span><br><span class="line">    ContentType: <span class="string">"text/plain"</span>,</span><br><span class="line">    Body:        []<span class="keyword">byte</span>(body),</span><br><span class="line">  &#125;)</span><br><span class="line">failOnError(err, <span class="string">"Failed to publish a message"</span>)</span><br></pre></td></tr></table></figure></p>
+<p>声明队列是幂等的(idempotent) - 只有在它不存在的情况下才会创建它。 消息内容是一个字节数组，因此您可以编码任何您喜欢的内容。</p>
+<p><a href="https://github.com/rabbitmq/rabbitmq-tutorials/blob/master/go/send.go" target="_blank" rel="noopener">代码位置从这获取</a>.</p>
+<p><strong>发送不起作用!</strong></p>
+<p>如果这是您第一次使用RabbitMQ并且没有看到“已发送”消息，那么您可能会感到头疼，想知道可能出现的问题。 也许代理是在没有足够的可用磁盘空间的情况下启动的（默认情况下它至少需要200 MB空闲），因此拒绝接受消息。 检查代理日志文件以确认并在必要时减少限制。 <a href="http://www.rabbitmq.com/configure.html#config-items" target="_blank" rel="noopener">配置文件文档</a>将向您展示如何设置disk_free_limit。</p>
+<h3 id="接收消息-receiving"><a href="#接收消息-receiving" class="headerlink" title="接收消息(receiving)"></a>接收消息(receiving)</h3><p>上面说的是发布者(publisher)。 我们的消费者的消息来自于RabbitMQ推送，因此与发布单个消息的发布者不同，我们将使其保持运行以侦听消息并将其打印出来。</p>
+<p><div align="center"><br><img src="/images/rabbitmq/receiving.png" alt="producer"><br></div><br>代码（在<a href="https://github.com/rabbitmq/rabbitmq-tutorials/blob/master/go/receive.go" target="_blank" rel="noopener">receive.go</a>中）具有与<em>send</em>相同的导入和帮助函数：<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">  <span class="string">"fmt"</span></span><br><span class="line">  <span class="string">"log"</span></span><br><span class="line"></span><br><span class="line">  <span class="string">"github.com/streadway/amqp"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">failOnError</span><span class="params">(err error, msg <span class="keyword">string</span>)</span></span> &#123;</span><br><span class="line">  <span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</span><br><span class="line">    log.Fatalf(<span class="string">"%s: %s"</span>, msg, err)</span><br><span class="line">    <span class="built_in">panic</span>(fmt.Sprintf(<span class="string">"%s: %s"</span>, msg, err))</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>设置与发布者相同; 我们打开一个连接和一个通道，并声明我们将要消费的队列。 请注意，这与发送到的队列匹配。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">conn, err := amqp.Dial(<span class="string">"amqp://guest:guest@localhost:5672/"</span>)</span><br><span class="line">failOnError(err, <span class="string">"Failed to connect to RabbitMQ"</span>)</span><br><span class="line"><span class="keyword">defer</span> conn.Close()</span><br><span class="line"></span><br><span class="line">ch, err := conn.Channel()</span><br><span class="line">failOnError(err, <span class="string">"Failed to open a channel"</span>)</span><br><span class="line"><span class="keyword">defer</span> ch.Close()</span><br><span class="line"></span><br><span class="line">q, err := ch.QueueDeclare(</span><br><span class="line">  <span class="string">"hello"</span>, <span class="comment">// name</span></span><br><span class="line">  <span class="literal">false</span>,   <span class="comment">// durable</span></span><br><span class="line">  <span class="literal">false</span>,   <span class="comment">// delete when usused</span></span><br><span class="line">  <span class="literal">false</span>,   <span class="comment">// exclusive</span></span><br><span class="line">  <span class="literal">false</span>,   <span class="comment">// no-wait</span></span><br><span class="line">  <span class="literal">nil</span>,     <span class="comment">// arguments</span></span><br><span class="line">)</span><br><span class="line">failOnError(err, <span class="string">"Failed to declare a queue"</span>)</span><br></pre></td></tr></table></figure></p>
+<p>请注意，我们在这也声明队列。因为我们可能会在发布者之前启动使用者，所以我们希望在尝试使用消息之前确保队列存在。</p>
+<p>我们即将告诉服务器从队列中传递消息。 因为它会异步地向我们发送消息，所以我们将在goroutine中读取来自通道（由amqp :: Consume返回）的消息。</p>
+<p><a href="https://github.com/rabbitmq/rabbitmq-tutorials/blob/master/go/receive.go" target="_blank" rel="noopener">receive.go的完整代码在这里</a>.</p>
+<h3 id="综合-Putting-it-all-together"><a href="#综合-Putting-it-all-together" class="headerlink" title="综合(Putting it all together)"></a>综合(Putting it all together)</h3><p>现在我们可以运行这两个脚本。 在终端中，运行发布者：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">go run send.go</span><br></pre></td></tr></table></figure></p>
+<p>然后，运行消费者:<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">go run receive.go</span><br></pre></td></tr></table></figure></p>
+<p>消费者将通过RabbitMQ打印从发布者处获得的消息。 消费者将继续运行，等待消息（使用Ctrl-C停止消息），因此请尝试从另一个终端运行发布者。</p>
+<p>如果要检查队列，请尝试使用<em>rabbitmqctl list_queues</em>。</p>
+<p>下一个部分将讲述如何构建一个简单的工作队列(work queue).</p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/golang/" rel="tag"># golang</a>
+          
+            <a href="/tags/rabbitmq/" rel="tag"># rabbitmq</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/09/13/golang/golang-file-server/" rel="next" title="golang搭建静态文件服务器">
+                <i class="fa fa-chevron-left"></i> golang搭建静态文件服务器
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/09/18/rabbitmq/rabbitmq-Work-Queues/" rel="prev" title="rabbitmq工作队列(Work Queues)">
+                rabbitmq工作队列(Work Queues) <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  
+    <div class="comments" id="comments">
+      
+        <div id="gitment-container"></div>
+      
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Arthur</p>
+              <p class="site-description motion-element" itemprop="description">Personal Blog, Notes and Everything should be kept</p>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">61</span>
+                    <span class="site-state-item-name">posts</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  <a href="/categories/index.html">
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">6</span>
+                    <span class="site-state-item-name">categories</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  <a href="/tags/index.html">
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">34</span>
+                    <span class="site-state-item-name">tags</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+            <div class="feed-link motion-element">
+              <a href="/atom.xml" rel="alternate">
+                <i class="fa fa-rss"></i>
+                RSS
+              </a>
+            </div>
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#介绍"><span class="nav-number">1.</span> <span class="nav-text">介绍</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#“Hello-World”"><span class="nav-number">2.</span> <span class="nav-text">“Hello World”</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#发送消息-sending"><span class="nav-number">3.</span> <span class="nav-text">发送消息(sending)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#接收消息-receiving"><span class="nav-number">4.</span> <span class="nav-text">接收消息(receiving)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#综合-Putting-it-all-together"><span class="nav-number">5.</span> <span class="nav-text">综合(Putting it all together)</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Arthur</span>
+
+  
+
+  
+</div>
+
+
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> v3.7.1</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://theme-next.org">NexT.Pisces</a> v6.3.0</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=6.3.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=6.3.0"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=6.3.0"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=6.3.0"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=6.3.0"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=6.3.0"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=6.3.0"></script>
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+<!-- LOCAL: You can save these files to your site and update links -->
+    
+        
+        <link rel="stylesheet" href="https://aimingoo.github.io/gitmint/style/default.css">
+        <script src="https://aimingoo.github.io/gitmint/dist/gitmint.browser.js"></script>
+    
+<!-- END LOCAL -->
+
+    
+
+    
+      <script type="text/javascript">
+      function renderGitment(){
+        var gitment = new Gitmint({
+            id: window.location.pathname,
+            owner: 'ShingYang',
+            repo: 'ShingYang.github.io',
+            
+            lang: "" || navigator.language || navigator.systemLanguage || navigator.userLanguage,
+            
+            oauth: {
+            
+            
+                client_secret: '23e4590b8427cdef66c3c0038c9fb29dfd9106bc',
+            
+                client_id: '3971199b02eb0109e893'
+            }});
+        gitment.render('gitment-container');
+      }
+
+      
+      renderGitment();
+      
+      </script>
+    
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

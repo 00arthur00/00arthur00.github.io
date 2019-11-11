@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=6.3.0" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=6.3.0">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=6.3.0" color="#222">
+
+
+
+
+
+
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '6.3.0',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="M3DB是一个时间序列数据库，主要设计为可水平扩展并处理大量监视时间序列数据。 时间序列压缩(M3TSZ)M3DB作为时间序列数据库的最大优势之一（与使用更通用的水平可扩展分布式数据库，如Cassandra相反）是其压缩时间序列数据的能力，从而节省了大量内存和磁盘。 这种高压缩比是通过M3TSZ算法实现的，这是Facebook的Gorilla论文中描述的流时间序列压缩算法的一种变体，但有一些小差别">
+<meta name="keywords" content="m3db,时间序列数据库">
+<meta property="og:type" content="article">
+<meta property="og:title" content="存储引擎概览">
+<meta property="og:url" content="http://blog.yapo.fun/2019/05/16/m3/m3db/architecure/Storage-Engine-Overview/index.html">
+<meta property="og:site_name" content="Arthur&#39;s Blog">
+<meta property="og:description" content="M3DB是一个时间序列数据库，主要设计为可水平扩展并处理大量监视时间序列数据。 时间序列压缩(M3TSZ)M3DB作为时间序列数据库的最大优势之一（与使用更通用的水平可扩展分布式数据库，如Cassandra相反）是其压缩时间序列数据的能力，从而节省了大量内存和磁盘。 这种高压缩比是通过M3TSZ算法实现的，这是Facebook的Gorilla论文中描述的流时间序列压缩算法的一种变体，但有一些小差别">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2019-11-11T13:26:06.033Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="存储引擎概览">
+<meta name="twitter:description" content="M3DB是一个时间序列数据库，主要设计为可水平扩展并处理大量监视时间序列数据。 时间序列压缩(M3TSZ)M3DB作为时间序列数据库的最大优势之一（与使用更通用的水平可扩展分布式数据库，如Cassandra相反）是其压缩时间序列数据的能力，从而节省了大量内存和磁盘。 这种高压缩比是通过M3TSZ算法实现的，这是Facebook的Gorilla论文中描述的流时间序列压缩算法的一种变体，但有一些小差别">
+
+
+
+  <link rel="alternate" href="/atom.xml" title="Arthur's Blog" type="application/atom+xml" />
+
+
+
+
+  <link rel="canonical" href="http://blog.yapo.fun/2019/05/16/m3/m3db/architecure/Storage-Engine-Overview/"/>
+
+
+
+<script type="text/javascript" id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>存储引擎概览 | Arthur's Blog</title>
+  
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style type="text/css">
+    .use-motion .motion-element,
+    .use-motion .brand,
+    .use-motion .menu-item,
+    .sidebar-inner,
+    .use-motion .post-block,
+    .use-motion .pagination,
+    .use-motion .comments,
+    .use-motion .post-header,
+    .use-motion .post-body,
+    .use-motion .collection-title { opacity: initial; }
+
+    .use-motion .logo,
+    .use-motion .site-title,
+    .use-motion .site-subtitle {
+      opacity: initial;
+      top: initial;
+    }
+
+    .use-motion {
+      .logo-line-before i { left: initial; }
+      .logo-line-after i { right: initial; }
+    }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Arthur's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="Toggle navigation bar">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+    <a href="/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-home"></i> <br />Home</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+    <a href="/tags/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />Tags</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+    <a href="/categories/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-th"></i> <br />Categories</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+    <a href="/archives/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />Archives</a>
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://blog.yapo.fun/2019/05/16/m3/m3db/architecure/Storage-Engine-Overview/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Arthur">
+      <meta itemprop="description" content="Personal Blog, Notes and Everything should be kept">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Arthur's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">存储引擎概览
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+
+              
+                
+              
+
+              <time title="Created: 2019-05-16 14:29:00" itemprop="dateCreated datePublished" datetime="2019-05-16T14:29:00+08:00">2019-05-16</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">Edited on</span>
+                
+                <time title="Modified: 2019-11-11 21:26:06" itemprop="dateModified" datetime="2019-11-11T21:26:06+08:00">2019-11-11</time>
+              
+            
+          </span>
+
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2019/05/16/m3/m3db/architecure/Storage-Engine-Overview/#comments" itemprop="discussionUrl">
+                  <span class="post-meta-item-text">Comments: </span> <span class="post-comments-count gitment-comments-count" data-xid="/2019/05/16/m3/m3db/architecure/Storage-Engine-Overview/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>M3DB是一个时间序列数据库，主要设计为可水平扩展并处理大量监视时间序列数据。</p>
+<h2 id="时间序列压缩-M3TSZ"><a href="#时间序列压缩-M3TSZ" class="headerlink" title="时间序列压缩(M3TSZ)"></a>时间序列压缩(M3TSZ)</h2><p>M3DB作为时间序列数据库的最大优势之一（与使用更通用的水平可扩展分布式数据库，如Cassandra相反）是其压缩时间序列数据的能力，从而节省了大量内存和磁盘。 这种高压缩比是通过M3TSZ算法实现的，这是<a href="http://www.vldb.org/pvldb/vol8/p1816-teller.pdf" target="_blank" rel="noopener"><strong>Facebook的Gorilla论文</strong></a>中描述的流时间序列压缩算法的一种变体，但有一些小差别。</p>
+<p>压缩比将根据工作负载和配置而有所不同，但我们发现使用M3TSZ，我们能够实现与Uber生产工作负载的<strong>1.45字节/数据点</strong>的压缩比。这比标准TSZ提高了40％，在相同条件下仅给出了2.42字节/数据点的压缩比。</p>
+<h2 id="架构"><a href="#架构" class="headerlink" title="架构"></a>架构</h2><p>M3DB是一个具有持久存储的持久数据库，但最好通过其<strong>内存中对象布局和磁盘表示</strong>之间的边界来理解。</p>
+<h2 id="内存布局"><a href="#内存布局" class="headerlink" title="内存布局"></a>内存布局</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line">                ┌───────────────────────────────┐</span><br><span class="line">┌───────────────┤           Database            ├─────────────────┐</span><br><span class="line">│               └───────────────────────────────┘                 │</span><br><span class="line">│                                                                 │</span><br><span class="line">│                                                                 │</span><br><span class="line">│                                                                 │</span><br><span class="line">│               ┌───────────────────────────────┐                 │</span><br><span class="line">│     ┌─────────┤          Namespace 1          ├──────────┐      │</span><br><span class="line">│     │         └───────────────────────────────┘          │      │</span><br><span class="line">│     │                                                    │      │</span><br><span class="line">│     │                                                    │      │</span><br><span class="line">│     │                   ┌───────────┐                    │      │</span><br><span class="line">│     │    ┌──────────────┤  Shard 1  ├──────────────┐     │      │</span><br><span class="line">│     │    │              └───────────┘              │     │      │</span><br><span class="line">│     │    │                                         │     │      │</span><br><span class="line">│     │    │                                         │     │      │</span><br><span class="line">│     │    │              ┌───────────┐              │     │      │</span><br><span class="line">│     │    │   ┌──────────┤ Series 1  ├──────────┐   │     │      │</span><br><span class="line">│     │    │   │          └───────────┘          │   │     │      │</span><br><span class="line">│     │    │   │                                 │   │     │      │</span><br><span class="line">│     │    │   │                                 │   │     │      │</span><br><span class="line">│     │    │   │ ┌─────────────────────────────┐ │   │     │      │</span><br><span class="line">│     │    │   │ │      Block [2PM - 4PM]      │ │   │     │      │</span><br><span class="line">│     │    │   │ ├─────────────────────────────┤ │   │     │      │</span><br><span class="line">│     │    │   │ │      Block [4PM - 6PM]      │ │   │     │      │</span><br><span class="line">│     │    │   │ ├─────────────────────────────┤ │   │     │      │</span><br><span class="line">│     │    │   │ │       ┌────────────┐        │ │   │     │      │</span><br><span class="line">│     │    │   │ └───────┤   Blocks   ├────────┘ │   │     │      │</span><br><span class="line">│     │    │   │         └────────────┘          │   │     │      │</span><br><span class="line">│     │    │   │                                 │   │     │      │</span><br><span class="line">│     │    │   │                                 │   │     │      │</span><br><span class="line">│     │    │   │  ┌────────────────────────────┐ │   │     │      │</span><br><span class="line">│     │    │   │  │                            │ │   │     │      │</span><br><span class="line">│     │    │   │  │     Block [6PM - 8PM]      │ │   │     │      │</span><br><span class="line">│     │    │   │  │                            │ │   │     │      │</span><br><span class="line">│     │    │   │  ├────────────────────────────┤ │   │     │      │</span><br><span class="line">│     │    │   │  │ Active Buffers (encoders)  │ │   │     │      │</span><br><span class="line">│     │    │   │  └────────────────────────────┘ │   │     │      │</span><br><span class="line">│     │    │   │                                 │   │     │      │</span><br><span class="line">│     │    │   │                                 │   │     │      │</span><br><span class="line">│     │    │   └─────────────────────────────────┘   │     │      │</span><br><span class="line">│     │    │                                         │     │      │</span><br><span class="line">│     │    │                                         │     │      │</span><br><span class="line">│     │    │                                         │     │      │</span><br><span class="line">│     │    │                                         │     │      │</span><br><span class="line">│     │    └─────────────────────────────────────────┘     │      │</span><br><span class="line">│     │                                                    │      │</span><br><span class="line">│     │                                                    │      │</span><br><span class="line">│     └────────────────────────────────────────────────────┘      │</span><br><span class="line">│                                                                 │</span><br><span class="line">└─────────────────────────────────────────────────────────────────┘</span><br></pre></td></tr></table></figure>
+<p>M3DB的内存部分是通过对象层次结构实现的：</p>
+<ol>
+<li><strong>每个M3DB进程只有一个<code>database</code></strong>。</li>
+<li>数据库“拥有”许多名称空间，每个名称空间都有一个唯一的名称以及关于数据保留期和块大小的不同配置（我们将在后面详细讨论）。<strong>命名空间与其他数据库中的表类似</strong>。</li>
+<li>命名空间拥有的分片(shard)。分片实际上与Cassandra中的“虚拟分片”相同，因为它们通过系列ID的简单散列提供时间序列数据的任意分布。</li>
+<li>序列由分片拥有。当您想到“时间序列”数据时，通常会想到一个系列。例如:一段时间内数据中心中单个主机的CPU级别可以表示为id为“.system.cpu.utilization”的序列和（TIMESTAMP，CPU_LEVEL）形式的元组向量。换句话说，如果您渲染图形，则序列将表示该图形上的单个线条。请注意，前面的示例只是一个逻辑说明，并不代表M3DB实际存储数据的方式。</li>
+<li><em>块属于一系列，是M3DB设计的核心</em>。块只是密封（不再可写）压缩时间序列数据流周围的较小包装器对象。压缩有一些注意事项，即您无法读取压缩块中的单个数据点。换句话说，<strong>为了读取单个数据点，您必须将整个块解压缩到您尝试读取的数据点</strong>。</li>
+</ol>
+<p>如果M3DB将所有内容保存在内存中（事实上，它的早期版本确实是这么做的），那么您可以从概念上将其视为由地图层次结构组成：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">database_obect      =&gt; map&lt;namepace_name, namespace_object&gt;</span><br><span class="line">namespace_object    =&gt; map&lt;shard_id, shard_object&gt;</span><br><span class="line">shard_object        =&gt; map&lt;series_id, series_object&gt;</span><br><span class="line">series_object       =&gt; map&lt;block_start_time, block_object&gt;</span><br><span class="line">series_object       =&gt; map&lt;block_start_time, active_buffers(encoders)&gt; (This map should only have one or two entries)</span><br></pre></td></tr></table></figure></p>
+<h3 id="持久存储"><a href="#持久存储" class="headerlink" title="持久存储"></a>持久存储</h3><p>虽然内存数据库可能很有用（并且M3DB支持在仅内存模式下运行），但持久性需要某种形式的持久性。 换句话说，如果没有持久性策略，M3DB就不可能在不丢失所有数据的情况下重新启动（或从崩溃中恢复）。</p>
+<p>此外，对于大量数据，将所有数据保存在内存中变得非常昂贵。对于监控工作负载尤其如此，这些工作负载通常遵循<strong>“一次写入，从不读取”</strong>模式，其中所存储的所有数据中只有不到百分之几被读取。 使用这种类型的工作负载时，如果可以将所有数据保存在磁盘上并在需要时检索，则将所有数据保存在内存中显得太浪费了。</p>
+<p>与大多数其他数据库一样，M3DB采用双管齐下的持久存储方法，包括将<strong>commitlog（用于灾难恢复）与定期快照（用于高效检索）相结合</strong>：</p>
+<ol>
+<li>所有写入都持久保存到<a href="https://m3db.github.io/m3/m3db/architecture/commitlogs/" target="_blank" rel="noopener">commitlog</a>（commitlog可以配置为fsync每次写入，或者可选地批量一起写入，速度快得多，但在发生灾难性故障的情况下可能会丢失少量数据）。<strong>commitlog完全未压缩，仅在数据库关闭（有意或无意）的情况下恢复“未刷新”数据，并且永远不会用于满足读取请求。</strong></li>
+<li>定期（基于配置的块大小）所有“活动”块被“密封”（标记为不可变）并作为“<a href="https://m3db.github.io/m3/m3db/architecture/storage/" target="_blank" rel="noopener">文件集</a>”文件刷入(flush)到磁盘。 这些文件是高度压缩的，可以通过其互补索引文件编入索引。查看刷入(flush)部分，了解有关<a href="https://m3db.github.io/m3/m3db/architecture/engine/#flushing" target="_blank" rel="noopener">刷入(flush)过程</a>背景的更多信息。</li>
+</ol>
+<p><strong>blocksize参数是需要针对特定工作负载进行调整的最重要变量</strong>。较小的块大小意味着更频繁的刷新，并且正在被主动压缩的数据的内存占用更少，但它也会降低压缩比，并且您的数据将占用磁盘上更多的空间。</p>
+<p>如果数据库由于“刷入”（将文件集文件写入磁盘）之间的任何原因而停止，那么当节点启动备份时，需要通过读取提交日志或来自对等方的数据流来恢复这些写入 负责相同的分片（如果复制因子大于1）。</p>
+<p>虽然<a href="https://m3db.github.io/m3/m3db/architecture/storage/" target="_blank" rel="noopener">文件集文件</a>旨在通过序列主键（ID）支持高效的数据检索，但是任何必须从磁盘检索数据的查询仍然存在沉重的成本，因为转到磁盘总是比访问主内存慢得多。<strong>为了弥补这一点，M3DB支持各种缓存策略，这些策略可以通过缓存内存中的数据来显着提高读取性能</strong>。</p>
+<h2 id="写入路径"><a href="#写入路径" class="headerlink" title="写入路径"></a>写入路径</h2><p>我们现在有足够的M3DB架构上下文来讨论写入的生命周期。当M3DB客户端调用M3DB的嵌入式thrift服务器上的<a href="https://github.com/m3db/m3/blob/06d3ecc94d13cff67b82a791271816caa338dcab/src/dbnode/generated/thrift/rpc.thrift#L59" target="_blank" rel="noopener">writeBatchRaw</a>端点时，写入开始。写本身将包含以下信息：</p>
+<ol>
+<li>命名空间</li>
+<li>系列ID（字节blob）</li>
+<li>时间戳</li>
+<li>value值本身</li>
+</ol>
+<p>M3DB将查询数据库对象以检查命名空间是否存在，如果存在，则它将散列序列ID以确定它属于哪个分片。如果接收write的节点拥有该分片，那么它将在分片对象中查找该序列。如果序列存在，那么它将查找序列的相应编码器并将数据点编码到<strong>压缩流</strong>中。如果编码器不存在（此系列的编码尚未作为此块的一部分发生），则将分配新的编码器，它将开始具有该数据点的压缩M3TSZ流。还有一些用于处理<strong>无序写入</strong>的特殊逻辑，在<a href="https://m3db.github.io/m3/m3db/architecture/engine/#merging-all-enoders" target="_blank" rel="noopener">合并所有编码器</a>部分中讨论。</p>
+<p>同时，写入将附加到commitlog队列（并且取决于commitlog配置，立即fsync到磁盘或与其他写入一起批处理并立即刷新）。</p>
+<p>写入将仅存在于此“活动缓冲区”和commitlog中，直到块结束并刷入到磁盘，此时写入将存在于文件集文件中，以便以后进行有效存储和检索，并且可以对commitlog条目进行垃圾回收。</p>
+<p>注意：无论在单个节点中写入成功与否，客户端都将根据配置的<a href="https://m3db.github.io/m3/m3db/architecture/consistencylevels/" target="_blank" rel="noopener">一致性级别</a>向调用方返回成功或失败。</p>
+<h2 id="读取路径"><a href="#读取路径" class="headerlink" title="读取路径"></a>读取路径</h2><p>当M3DB客户端调用M3DB嵌入式thrift服务器上的<a href="https://github.com/m3db/m3/blob/master/src/dbnode/generated/thrift/rpc.thrift" target="_blank" rel="noopener">FetchBatchResult</a>或<a href="https://github.com/m3db/m3/blob/master/src/dbnode/generated/thrift/rpc.thrift" target="_blank" rel="noopener">FetchBlocksRawResult</a>端点时，将开始读取。读取请求将包含以下信息：</p>
+<ol>
+<li>命名空间</li>
+<li>序列ID（字节blob）</li>
+<li>请求的时间段（开始和结束）</li>
+</ol>
+<p>M3DB将查询数据库对象以检查命名空间是否存在，如果存在，则<strong>它将散列系列ID以确定它属于哪个分片</strong>。如果接收读取的节点拥有该碎片，那么M3DB需要确定两件事：</p>
+<ol>
+<li>该系列是否存在？如果确实如此</li>
+<li>数据是存在于“活动缓冲区”中（由编码器主动压缩），缓存在内存中，磁盘上还是三者的某种组合？</li>
+</ol>
+<p>确定系列是否存在很简单。M3DB在分片对象中查找该系列。如果存在，则系列存在。如果没有，则M3DB查询该分片/块启动组合的内存布隆过滤器，以确定该系列是否存在于磁盘上。</p>
+<p>如果系列存在，那么对于请求跨越的每个块，M3DB需要合并来自活动缓冲区，内存高速缓存和文件集文件（磁盘）的数据。</p>
+<p>让我们设想一个读取给定系列请求最后6个小时的数据，以及一个配置了2个小时的块大小的M3DB命名空间（即我们需要找到3个不同的块）。</p>
+<p>如果当前时间是晚上8点，则所请求的块的位置可能如下所示：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[2PM - 4PM (FileSet file)]    - 已密封并刷入磁盘但未缓存</span><br><span class="line">[4PM - 6PM (In-memory cache)] - 已密封并刷入磁盘且缓存</span><br><span class="line">[6PM - 8PM (active buffer)]   - 未密封、未刷入存盘</span><br></pre></td></tr></table></figure></p>
+<p>那么M3DB需要合并:</p>
+<ol>
+<li>来自活动缓冲区/编码器的尚未密封的块（位于Series对象内部查找内）<strong>[6PM-8PM]</strong></li>
+<li>内存中缓存块(也位于Series对象内部查找内）<strong>[4PM-6PM]</strong></li>
+<li>来自磁盘的块(从磁盘检索的块将根据当前的缓存策略进行缓存<strong>)[2PM-4PM]</strong></li>
+</ol>
+<p>从活动缓冲区和内存缓存中检索块很简单，数据已经存在于内存中，并且可以通过序列ID键入的哈希映射轻松访问。从磁盘检索块更复杂。从磁盘检索块的流程如下：</p>
+<ol>
+<li>查询内存中的bloom过滤器，以确定该系列是否存在于磁盘上。</li>
+<li><strong>如果bloom过滤器返回存在，则二进制搜索内存中索引摘要以查找我们正在搜索的序列ID之前的最近索引条目。查看index_lookup.go文件以获取实现详细信息。</strong></li>
+<li>跳转到我们在上一步中从二进制搜索中获得的索引文件中的偏移量，并开始向前扫描，直到我们识别出我们正在寻找的系列ID的索引条目，或者我们在索引文件中得到足够远以确认我们正在寻找的ID不存在（这是可能的，因为索引文件按ID排序）</li>
+<li>跳转到我们在上一步中扫描索引文件获得的数据文件中的偏移量，并开始流式传输数据。</li>
+</ol>
+<p>一旦M3DB从内存/磁盘上各自的位置检索到三个块，它就会将所有数据传回客户端。<strong>客户端是否向调用者返回读取成功取决于配置的<a href="https://m3db.github.io/m3/m3db/architecture/consistencylevels/" target="_blank" rel="noopener">一致性级别</a>。</strong></p>
+<p>注意：<strong>由于M3DB节点返回压缩块（M3DB客户端对它们进行解压缩），因此无法为给定块返回“部分结果”。 如果读取请求的任何部分跨越给定块，则该块的整体必须被传送回客户端。实际上，由于M3DB能够实现高压缩比，因此最终不会成为问题。</strong></p>
+<h2 id="后台进程"><a href="#后台进程" class="headerlink" title="后台进程"></a>后台进程</h2><p>M3DB具有在正常操作期间在后台运行的各种进程。</p>
+<h3 id="滴答"><a href="#滴答" class="headerlink" title="滴答"></a>滴答</h3><p>滴答进程在后台持续运行，负责各种任务：</p>
+<ol>
+<li>合并给定系列/块起始组合的所有编码器</li>
+<li>从内存中删除过期/刷入的序列和块</li>
+<li>从文件系统中清除过期数据（文件集/提交日志）</li>
+</ol>
+<h4 id="合并所有编码器"><a href="#合并所有编码器" class="headerlink" title="合并所有编码器"></a>合并所有编码器</h4><p>M3TSZ设计用于压缩时间序列数据，其中每个数据点的时间戳大于最后编码的数据点。 对于监视工作负载，这非常有效，因为每个后续数据点几乎总是在前一个数据点之后按时间顺序排列。 但是，现实世界的系统很乱，偶尔会收到无序写入。 发生这种情况时，M3DB将为无序数据点分配新的编码器。 在将数据刷新到磁盘之前需要合并多个编码器，但为了防止在刷新过程中出现大量内存峰值，我们会在后台不断合并乱序编码器。</p>
+<h4 id="从内存中删除过期-刷入的序列和块"><a href="#从内存中删除过期-刷入的序列和块" class="headerlink" title="从内存中删除过期/刷入的序列和块"></a>从内存中删除过期/刷入的序列和块</h4><p>根据配置的缓存策略，内存中对象布局最终可能会引用已过期的系列或数据块（已超出保留期）或不再需要在内存中（由于数据被刷入）到磁盘或不再需要缓存）。后台滴答进程将识别这些结构并从内存中释放它们。</p>
+<h3 id="刷入"><a href="#刷入" class="headerlink" title="刷入"></a>刷入</h3><p>正如<a href="https://m3db.github.io/m3/m3db/architecture/engine/#architecture" target="_blank" rel="noopener">架构部分</a>所讨论的那样，写入在内存中被主动缓冲/压缩，并且持续写入提交日志，但最终需要以<a href="https://m3db.github.io/m3/m3db/architecture/storage/" target="_blank" rel="noopener">文件集文件</a>的形式将数据刷入到磁盘，以便于高效存储和检索。</p>
+<p>这是可配置的“blocksize”发挥作用的地方。块大小只是一段时间，它指示在“密封”（标记为不可变）并刷新到磁盘之前，在内存中压缩活动写入的时间（以流方式）。让我们使用两个小时的块大小作为例子。</p>
+<p>如果blocksize设置为两个小时，则给定分片的所有序列的所有写入将一次缓冲在内存中两个小时。在两小时结束时，将生成所有文件集文件，写入磁盘，然后可以释放内存中的对象并替换为新块的新文件。旧对象将在后续滴答从内存中删除。</p>
+<h2 id="警告-限制"><a href="#警告-限制" class="headerlink" title="警告/限制"></a>警告/限制</h2><ol>
+<li>目前，M3DB不支持任意更新或删除。在可变块中支持时间序列数据的upsert，但是在时间序列数据移出可变窗口之后，它变得不可变。</li>
+<li>M3DB不支持任意写入过去和未来。这对于监视工作负载通常很好，但对于传统的<a href="https://en.wikipedia.org/wiki/Online_transaction_processing" target="_blank" rel="noopener">OLTP</a>和<a href="https://en.wikipedia.org/wiki/Online_analytical_processing" target="_blank" rel="noopener">OLAP</a>工作负载可能会有问题。未来版本的M3DB将更好地支持具有任意时间戳的写入。</li>
+<li>M3DB不支持使用双精度浮点数以外的值写入数据点。未来版本的M3DB将支持存储任意值。</li>
+<li>M3DB不支持以无限期保留期存储数据，M3DB中的每个命名空间都需要具有保留策略，该策略指定将保留该命名空间中的数据的时间长度。虽然该值没有上限（Uber的生产数据库运行时保留期高达5年），但仍然需要并且一般来说M3DB针对具有明确定义的<a href="https://en.wikipedia.org/wiki/Time_to_live" target="_blank" rel="noopener">TTL</a>的工作负载进行了优化。</li>
+<li>M3DB不支持后台数据修复或Cassandra式<a href="https://docs.datastax.com/en/cassandra/2.1/cassandra/operations/opsRepairNodesReadRepair.html" target="_blank" rel="noopener">读取修复</a>。未来版本的M3DB将支持作为持续运行的后台进程的数据自动修复。</li>
+</ol>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/m3db/" rel="tag"># m3db</a>
+          
+            <a href="/tags/时间序列数据库/" rel="tag"># 时间序列数据库</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/05/16/m3/m3db/introduction/" rel="next" title="M3DB, 一个分布式时间序列数据库">
+                <i class="fa fa-chevron-left"></i> M3DB, 一个分布式时间序列数据库
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2019/05/16/m3/m3db/architecure/m3db-sharding-and-replication/" rel="prev" title="m3db分片和复制">
+                m3db分片和复制 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  
+    <div class="comments" id="comments">
+      
+        <div id="gitment-container"></div>
+      
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Arthur</p>
+              <p class="site-description motion-element" itemprop="description">Personal Blog, Notes and Everything should be kept</p>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">61</span>
+                    <span class="site-state-item-name">posts</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  <a href="/categories/index.html">
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">6</span>
+                    <span class="site-state-item-name">categories</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  <a href="/tags/index.html">
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">34</span>
+                    <span class="site-state-item-name">tags</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+            <div class="feed-link motion-element">
+              <a href="/atom.xml" rel="alternate">
+                <i class="fa fa-rss"></i>
+                RSS
+              </a>
+            </div>
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#时间序列压缩-M3TSZ"><span class="nav-number">1.</span> <span class="nav-text">时间序列压缩(M3TSZ)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#架构"><span class="nav-number">2.</span> <span class="nav-text">架构</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#内存布局"><span class="nav-number">3.</span> <span class="nav-text">内存布局</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#持久存储"><span class="nav-number">3.1.</span> <span class="nav-text">持久存储</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#写入路径"><span class="nav-number">4.</span> <span class="nav-text">写入路径</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#读取路径"><span class="nav-number">5.</span> <span class="nav-text">读取路径</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#后台进程"><span class="nav-number">6.</span> <span class="nav-text">后台进程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#滴答"><span class="nav-number">6.1.</span> <span class="nav-text">滴答</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#合并所有编码器"><span class="nav-number">6.1.1.</span> <span class="nav-text">合并所有编码器</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#从内存中删除过期-刷入的序列和块"><span class="nav-number">6.1.2.</span> <span class="nav-text">从内存中删除过期/刷入的序列和块</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#刷入"><span class="nav-number">6.2.</span> <span class="nav-text">刷入</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#警告-限制"><span class="nav-number">7.</span> <span class="nav-text">警告/限制</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Arthur</span>
+
+  
+
+  
+</div>
+
+
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> v3.7.1</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://theme-next.org">NexT.Pisces</a> v6.3.0</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=6.3.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=6.3.0"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=6.3.0"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=6.3.0"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=6.3.0"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=6.3.0"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=6.3.0"></script>
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+<!-- LOCAL: You can save these files to your site and update links -->
+    
+        
+        <link rel="stylesheet" href="https://aimingoo.github.io/gitmint/style/default.css">
+        <script src="https://aimingoo.github.io/gitmint/dist/gitmint.browser.js"></script>
+    
+<!-- END LOCAL -->
+
+    
+
+    
+      <script type="text/javascript">
+      function renderGitment(){
+        var gitment = new Gitmint({
+            id: window.location.pathname,
+            owner: 'ShingYang',
+            repo: 'ShingYang.github.io',
+            
+            lang: "" || navigator.language || navigator.systemLanguage || navigator.userLanguage,
+            
+            oauth: {
+            
+            
+                client_secret: '23e4590b8427cdef66c3c0038c9fb29dfd9106bc',
+            
+                client_id: '3971199b02eb0109e893'
+            }});
+        gitment.render('gitment-container');
+      }
+
+      
+      renderGitment();
+      
+      </script>
+    
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

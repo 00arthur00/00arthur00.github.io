@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=6.3.0" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=6.3.0">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=6.3.0" color="#222">
+
+
+
+
+
+
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '6.3.0',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="原文 规则注意: 规则组件是实验性的，因为它具有可能对大多数用例不利的概念权衡。 建议将规则部署到相关的Prometheus服务器。 规则组件尤其不能被用于在配置管理级别规避正确解决规则部署。 规则组件针对其群集中的随机查询节点计算Prometheus记录和警报规则。规则结果以Prometheus 2.0存储格式写回磁盘。规则节点同时作为源存储节点参与集群本身，并将其生成的TSDB块上载到对象存储">
+<meta name="keywords" content="监控,thanos">
+<meta property="og:type" content="article">
+<meta property="og:title" content="thanos规则">
+<meta property="og:url" content="http://blog.yapo.fun/2019/03/26/thanos/thanos-rule/index.html">
+<meta property="og:site_name" content="Arthur&#39;s Blog">
+<meta property="og:description" content="原文 规则注意: 规则组件是实验性的，因为它具有可能对大多数用例不利的概念权衡。 建议将规则部署到相关的Prometheus服务器。 规则组件尤其不能被用于在配置管理级别规避正确解决规则部署。 规则组件针对其群集中的随机查询节点计算Prometheus记录和警报规则。规则结果以Prometheus 2.0存储格式写回磁盘。规则节点同时作为源存储节点参与集群本身，并将其生成的TSDB块上载到对象存储">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2019-11-11T13:26:06.037Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="thanos规则">
+<meta name="twitter:description" content="原文 规则注意: 规则组件是实验性的，因为它具有可能对大多数用例不利的概念权衡。 建议将规则部署到相关的Prometheus服务器。 规则组件尤其不能被用于在配置管理级别规避正确解决规则部署。 规则组件针对其群集中的随机查询节点计算Prometheus记录和警报规则。规则结果以Prometheus 2.0存储格式写回磁盘。规则节点同时作为源存储节点参与集群本身，并将其生成的TSDB块上载到对象存储">
+
+
+
+  <link rel="alternate" href="/atom.xml" title="Arthur's Blog" type="application/atom+xml" />
+
+
+
+
+  <link rel="canonical" href="http://blog.yapo.fun/2019/03/26/thanos/thanos-rule/"/>
+
+
+
+<script type="text/javascript" id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>thanos规则 | Arthur's Blog</title>
+  
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style type="text/css">
+    .use-motion .motion-element,
+    .use-motion .brand,
+    .use-motion .menu-item,
+    .sidebar-inner,
+    .use-motion .post-block,
+    .use-motion .pagination,
+    .use-motion .comments,
+    .use-motion .post-header,
+    .use-motion .post-body,
+    .use-motion .collection-title { opacity: initial; }
+
+    .use-motion .logo,
+    .use-motion .site-title,
+    .use-motion .site-subtitle {
+      opacity: initial;
+      top: initial;
+    }
+
+    .use-motion {
+      .logo-line-before i { left: initial; }
+      .logo-line-after i { right: initial; }
+    }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Arthur's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="Toggle navigation bar">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+    <a href="/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-home"></i> <br />Home</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+    <a href="/tags/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />Tags</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+    <a href="/categories/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-th"></i> <br />Categories</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+    <a href="/archives/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />Archives</a>
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://blog.yapo.fun/2019/03/26/thanos/thanos-rule/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Arthur">
+      <meta itemprop="description" content="Personal Blog, Notes and Everything should be kept">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Arthur's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">thanos规则
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+
+              
+                
+              
+
+              <time title="Created: 2019-03-26 15:22:00" itemprop="dateCreated datePublished" datetime="2019-03-26T15:22:00+08:00">2019-03-26</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">Edited on</span>
+                
+                <time title="Modified: 2019-11-11 21:26:06" itemprop="dateModified" datetime="2019-11-11T21:26:06+08:00">2019-11-11</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/监控/" itemprop="url" rel="index"><span itemprop="name">监控</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2019/03/26/thanos/thanos-rule/#comments" itemprop="discussionUrl">
+                  <span class="post-meta-item-text">Comments: </span> <span class="post-comments-count gitment-comments-count" data-xid="/2019/03/26/thanos/thanos-rule/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p><a href="https://github.com/improbable-eng/thanos/blob/master/docs/components/rule.md" target="_blank" rel="noopener">原文</a></p>
+<h1 id="规则"><a href="#规则" class="headerlink" title="规则"></a>规则</h1><p><em><strong>注意:</strong> 规则组件是实验性的，因为它具有可能对大多数用例不利的概念权衡。 建议将规则部署到相关的Prometheus服务器。</em></p>
+<p><em>规则组件尤其不能被用于在配置管理级别规避正确解决规则部署。</em></p>
+<p>规则组件针对其群集中的随机查询节点计算Prometheus记录和警报规则。规则结果以Prometheus 2.0存储格式写回磁盘。规则节点同时作为源存储节点参与集群本身，并将其生成的TSDB块上载到对象存储库。</p>
+<p>可以标记每个规则节点的数据以满足集群标记方案。高可用性对可以并行运行，并且应该通过指定的副本标签进行区分，就像常规的Prometheus服务器一样。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">$ thanos rule \</span><br><span class="line">    --data-dir          &quot;/path/to/data&quot; \</span><br><span class="line">    --eval-interval     &quot;30s&quot; \</span><br><span class="line">    --rule-file         &quot;/path/to/rules/*.rules.yaml&quot; \</span><br><span class="line">    --alert.query-url   &quot;http://0.0.0.0:9090&quot; \</span><br><span class="line">    --alertmanagers.url &quot;alert.thanos.io&quot; \</span><br><span class="line">    --cluster.peers     &quot;thanos-cluster.example.org&quot; \</span><br><span class="line">    --objstore.config-file &quot;bucket.yml&quot;</span><br></pre></td></tr></table></figure>
+<p><code>bucket.yml</code>内容:</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">type:</span> <span class="string">GCS</span></span><br><span class="line"><span class="attr">config:</span></span><br><span class="line"><span class="attr">  bucket:</span> <span class="string">example-bucket</span></span><br></pre></td></tr></table></figure>
+<p>由于规则节点将查询处理外包给查询节点，因此它们通常应该承受很少的负载。如有必要，可以通过在HA对之间拆分规则集来应用功能分片。</p>
+<p>根据在查询节点上配置的副本标签，使用经过去重数据处理规则。</p>
+<h2 id="部署"><a href="#部署" class="headerlink" title="部署"></a>部署</h2><h2 id="Flags"><a href="#Flags" class="headerlink" title="Flags"></a>Flags</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br></pre></td><td class="code"><pre><span class="line">usage: thanos rule [&lt;flags&gt;]</span><br><span class="line"></span><br><span class="line">ruler evaluating Prometheus rules against given Query nodes, exposing Store API</span><br><span class="line">and storing old blocks in bucket</span><br><span class="line"></span><br><span class="line">Flags:</span><br><span class="line">  -h, --help                     Show context-sensitive help (also try</span><br><span class="line">                                 --help-long and --help-man).</span><br><span class="line">      --version                  Show application version.</span><br><span class="line">      --log.level=info           Log filtering level.</span><br><span class="line">      --log.format=logfmt        Log format to use.</span><br><span class="line">      --gcloudtrace.project=GCLOUDTRACE.PROJECT</span><br><span class="line">                                 GCP project to send Google Cloud Trace tracings</span><br><span class="line">                                 to. If empty, tracing will be disabled.</span><br><span class="line">      --gcloudtrace.sample-factor=1</span><br><span class="line">                                 How often we send traces (1/&lt;sample-factor&gt;).</span><br><span class="line">                                 If 0 no trace will be sent periodically, unless</span><br><span class="line">                                 forced by baggage item. See</span><br><span class="line">                                 `pkg/tracing/tracing.go` for details.</span><br><span class="line">      --http-address=&quot;0.0.0.0:10902&quot;</span><br><span class="line">                                 Listen host:port for HTTP endpoints.</span><br><span class="line">      --grpc-address=&quot;0.0.0.0:10901&quot;</span><br><span class="line">                                 Listen ip:port address for gRPC endpoints</span><br><span class="line">                                 (StoreAPI). Make sure this address is routable</span><br><span class="line">                                 from other components if you use gossip,</span><br><span class="line">                                 &apos;grpc-advertise-address&apos; is empty and you</span><br><span class="line">                                 require cross-node connection.</span><br><span class="line">      --grpc-server-tls-cert=&quot;&quot;  TLS Certificate for gRPC server, leave blank to</span><br><span class="line">                                 disable TLS</span><br><span class="line">      --grpc-server-tls-key=&quot;&quot;   TLS Key for the gRPC server, leave blank to</span><br><span class="line">                                 disable TLS</span><br><span class="line">      --grpc-server-tls-client-ca=&quot;&quot;</span><br><span class="line">                                 TLS CA to verify clients against. If no client</span><br><span class="line">                                 CA is specified, there is no client</span><br><span class="line">                                 verification on server side. (tls.NoClientCert)</span><br><span class="line">      --grpc-advertise-address=GRPC-ADVERTISE-ADDRESS</span><br><span class="line">                                 Explicit (external) host:port address to</span><br><span class="line">                                 advertise for gRPC StoreAPI in gossip cluster.</span><br><span class="line">                                 If empty, &apos;grpc-address&apos; will be used.</span><br><span class="line">      --cluster.address=&quot;0.0.0.0:10900&quot;</span><br><span class="line">                                 Listen ip:port address for gossip cluster.</span><br><span class="line">      --cluster.advertise-address=CLUSTER.ADVERTISE-ADDRESS</span><br><span class="line">                                 Explicit (external) ip:port address to</span><br><span class="line">                                 advertise for gossip in gossip cluster. Used</span><br><span class="line">                                 internally for membership only.</span><br><span class="line">      --cluster.peers=CLUSTER.PEERS ...</span><br><span class="line">                                 Initial peers to join the cluster. It can be</span><br><span class="line">                                 either &lt;ip:port&gt;, or &lt;domain:port&gt;. A lookup</span><br><span class="line">                                 resolution is done only at the startup.</span><br><span class="line">      --cluster.gossip-interval=&lt;gossip interval&gt;</span><br><span class="line">                                 Interval between sending gossip messages. By</span><br><span class="line">                                 lowering this value (more frequent) gossip</span><br><span class="line">                                 messages are propagated across the cluster more</span><br><span class="line">                                 quickly at the expense of increased bandwidth.</span><br><span class="line">                                 Default is used from a specified network-type.</span><br><span class="line">      --cluster.pushpull-interval=&lt;push-pull interval&gt;</span><br><span class="line">                                 Interval for gossip state syncs. Setting this</span><br><span class="line">                                 interval lower (more frequent) will increase</span><br><span class="line">                                 convergence speeds across larger clusters at</span><br><span class="line">                                 the expense of increased bandwidth usage.</span><br><span class="line">                                 Default is used from a specified network-type.</span><br><span class="line">      --cluster.refresh-interval=1m</span><br><span class="line">                                 Interval for membership to refresh</span><br><span class="line">                                 cluster.peers state, 0 disables refresh.</span><br><span class="line">      --cluster.secret-key=CLUSTER.SECRET-KEY</span><br><span class="line">                                 Initial secret key to encrypt cluster gossip.</span><br><span class="line">                                 Can be one of AES-128, AES-192, or AES-256 in</span><br><span class="line">                                 hexadecimal format.</span><br><span class="line">      --cluster.network-type=lan</span><br><span class="line">                                 Network type with predefined peers</span><br><span class="line">                                 configurations. Sets of configurations</span><br><span class="line">                                 accounting the latency differences between</span><br><span class="line">                                 network types: local, lan, wan.</span><br><span class="line">      --cluster.disable          If true gossip will be disabled and no cluster</span><br><span class="line">                                 related server will be started.</span><br><span class="line">      --label=&lt;name&gt;=&quot;&lt;value&gt;&quot; ...</span><br><span class="line">                                 Labels to be applied to all generated metrics</span><br><span class="line">                                 (repeated). Similar to external labels for</span><br><span class="line">                                 Prometheus, used to identify ruler and its</span><br><span class="line">                                 blocks as unique source.</span><br><span class="line">      --data-dir=&quot;data/&quot;         data directory</span><br><span class="line">      --rule-file=rules/ ...     Rule files that should be used by rule manager.</span><br><span class="line">                                 Can be in glob format (repeated).</span><br><span class="line">      --eval-interval=30s        The default evaluation interval to use.</span><br><span class="line">      --tsdb.block-duration=2h   Block duration for TSDB block.</span><br><span class="line">      --tsdb.retention=48h       Block retention time on local disk.</span><br><span class="line">      --alertmanagers.url=ALERTMANAGERS.URL ...</span><br><span class="line">                                 Alertmanager replica URLs to push firing</span><br><span class="line">                                 alerts. Ruler claims success if push to at</span><br><span class="line">                                 least one alertmanager from discovered</span><br><span class="line">                                 succeeds. The scheme may be prefixed with</span><br><span class="line">                                 &apos;dns+&apos; or &apos;dnssrv+&apos; to detect Alertmanager IPs</span><br><span class="line">                                 through respective DNS lookups. The port</span><br><span class="line">                                 defaults to 9093 or the SRV record&apos;s value. The</span><br><span class="line">                                 URL path is used as a prefix for the regular</span><br><span class="line">                                 Alertmanager API path.</span><br><span class="line">      --alertmanagers.send-timeout=10s</span><br><span class="line">                                 Timeout for sending alerts to alertmanager</span><br><span class="line">      --alert.query-url=ALERT.QUERY-URL</span><br><span class="line">                                 The external Thanos Query URL that would be set</span><br><span class="line">                                 in all alerts &apos;Source&apos; field</span><br><span class="line">      --alert.label-drop=ALERT.LABEL-DROP ...</span><br><span class="line">                                 Labels by name to drop before sending to</span><br><span class="line">                                 alertmanager. This allows alert to be</span><br><span class="line">                                 deduplicated on replica label (repeated).</span><br><span class="line">                                 Similar Prometheus alert relabelling</span><br><span class="line">      --web.route-prefix=&quot;&quot;      Prefix for API and UI endpoints. This allows</span><br><span class="line">                                 thanos UI to be served on a sub-path. This</span><br><span class="line">                                 option is analogous to --web.route-prefix of</span><br><span class="line">                                 Promethus.</span><br><span class="line">      --web.external-prefix=&quot;&quot;   Static prefix for all HTML links and redirect</span><br><span class="line">                                 URLs in the UI query web interface. Actual</span><br><span class="line">                                 endpoints are still served on / or the</span><br><span class="line">                                 web.route-prefix. This allows thanos UI to be</span><br><span class="line">                                 served behind a reverse proxy that strips a URL</span><br><span class="line">                                 sub-path.</span><br><span class="line">      --web.prefix-header=&quot;&quot;     Name of HTTP request header used for dynamic</span><br><span class="line">                                 prefixing of UI links and redirects. This</span><br><span class="line">                                 option is ignored if web.external-prefix</span><br><span class="line">                                 argument is set. Security risk: enable this</span><br><span class="line">                                 option only if a reverse proxy in front of</span><br><span class="line">                                 thanos is resetting the header. The</span><br><span class="line">                                 --web.prefix-header=X-Forwarded-Prefix option</span><br><span class="line">                                 can be useful, for example, if Thanos UI is</span><br><span class="line">                                 served via Traefik reverse proxy with</span><br><span class="line">                                 PathPrefixStrip option enabled, which sends the</span><br><span class="line">                                 stripped prefix value in X-Forwarded-Prefix</span><br><span class="line">                                 header. This allows thanos UI to be served on a</span><br><span class="line">                                 sub-path.</span><br><span class="line">      --objstore.config-file=&lt;bucket.config-yaml-path&gt;</span><br><span class="line">                                 Path to YAML file that contains object store</span><br><span class="line">                                 configuration.</span><br><span class="line">      --objstore.config=&lt;bucket.config-yaml&gt;</span><br><span class="line">                                 Alternative to &apos;objstore.config-file&apos; flag.</span><br><span class="line">                                 Object store configuration in YAML.</span><br><span class="line">      --query=&lt;query&gt; ...        Addresses of statically configured query API</span><br><span class="line">                                 servers (repeatable). The scheme may be</span><br><span class="line">                                 prefixed with &apos;dns+&apos; or &apos;dnssrv+&apos; to detect</span><br><span class="line">                                 query API servers through respective DNS</span><br><span class="line">                                 lookups.</span><br><span class="line">      --query.sd-files=&lt;path&gt; ...</span><br><span class="line">                                 Path to file that contain addresses of query</span><br><span class="line">                                 peers. The path can be a glob pattern</span><br><span class="line">                                 (repeatable).</span><br><span class="line">      --query.sd-interval=5m     Refresh interval to re-read file SD files.</span><br><span class="line">                                 (used as a fallback)</span><br><span class="line">      --query.sd-dns-interval=30s</span><br><span class="line">                                 Interval between DNS resolutions.</span><br></pre></td></tr></table></figure>
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/监控/" rel="tag"># 监控</a>
+          
+            <a href="/tags/thanos/" rel="tag"># thanos</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/03/26/thanos/thanos-design/" rel="next" title="thanos设计">
+                <i class="fa fa-chevron-left"></i> thanos设计
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2019/03/27/prometheus/alerting/prometheus-alerting-alertmanager/" rel="prev" title="prometheus报警器规则">
+                prometheus报警器规则 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  
+    <div class="comments" id="comments">
+      
+        <div id="gitment-container"></div>
+      
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Arthur</p>
+              <p class="site-description motion-element" itemprop="description">Personal Blog, Notes and Everything should be kept</p>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">61</span>
+                    <span class="site-state-item-name">posts</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  <a href="/categories/index.html">
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">6</span>
+                    <span class="site-state-item-name">categories</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  <a href="/tags/index.html">
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">34</span>
+                    <span class="site-state-item-name">tags</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+            <div class="feed-link motion-element">
+              <a href="/atom.xml" rel="alternate">
+                <i class="fa fa-rss"></i>
+                RSS
+              </a>
+            </div>
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#规则"><span class="nav-number">1.</span> <span class="nav-text">规则</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#部署"><span class="nav-number">1.1.</span> <span class="nav-text">部署</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Flags"><span class="nav-number">1.2.</span> <span class="nav-text">Flags</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Arthur</span>
+
+  
+
+  
+</div>
+
+
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> v3.7.1</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://theme-next.org">NexT.Pisces</a> v6.3.0</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=6.3.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=6.3.0"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=6.3.0"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=6.3.0"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=6.3.0"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=6.3.0"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=6.3.0"></script>
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+<!-- LOCAL: You can save these files to your site and update links -->
+    
+        
+        <link rel="stylesheet" href="https://aimingoo.github.io/gitmint/style/default.css">
+        <script src="https://aimingoo.github.io/gitmint/dist/gitmint.browser.js"></script>
+    
+<!-- END LOCAL -->
+
+    
+
+    
+      <script type="text/javascript">
+      function renderGitment(){
+        var gitment = new Gitmint({
+            id: window.location.pathname,
+            owner: 'ShingYang',
+            repo: 'ShingYang.github.io',
+            
+            lang: "" || navigator.language || navigator.systemLanguage || navigator.userLanguage,
+            
+            oauth: {
+            
+            
+                client_secret: '23e4590b8427cdef66c3c0038c9fb29dfd9106bc',
+            
+                client_id: '3971199b02eb0109e893'
+            }});
+        gitment.render('gitment-container');
+      }
+
+      
+      renderGitment();
+      
+      </script>
+    
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

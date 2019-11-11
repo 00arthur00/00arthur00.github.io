@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=6.3.0" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=6.3.0">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=6.3.0" color="#222">
+
+
+
+
+
+
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '6.3.0',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="插入并保存文档 使用insert直接插入文档，如”db.foo.insert{“bar”:”bazz”}。_id会自动添加。 为了提高插入效率，可使用batchInsert(insertMany)批量插入。如 12345678&amp;gt; db.foo.insertMany([&amp;#123;a:1&amp;#125;,&amp;#123;a:2&amp;#125;])&amp;#123;        &amp;quot;acknowledg">
+<meta name="keywords" content="数据库,mongodb">
+<meta property="og:type" content="article">
+<meta property="og:title" content="mongodb文档的创建、更新和删除(CUD)">
+<meta property="og:url" content="http://blog.yapo.fun/2018/07/19/mongodb/mongodb-crud/index.html">
+<meta property="og:site_name" content="Arthur&#39;s Blog">
+<meta property="og:description" content="插入并保存文档 使用insert直接插入文档，如”db.foo.insert{“bar”:”bazz”}。_id会自动添加。 为了提高插入效率，可使用batchInsert(insertMany)批量插入。如 12345678&amp;gt; db.foo.insertMany([&amp;#123;a:1&amp;#125;,&amp;#123;a:2&amp;#125;])&amp;#123;        &amp;quot;acknowledg">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2019-11-11T13:26:06.037Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="mongodb文档的创建、更新和删除(CUD)">
+<meta name="twitter:description" content="插入并保存文档 使用insert直接插入文档，如”db.foo.insert{“bar”:”bazz”}。_id会自动添加。 为了提高插入效率，可使用batchInsert(insertMany)批量插入。如 12345678&amp;gt; db.foo.insertMany([&amp;#123;a:1&amp;#125;,&amp;#123;a:2&amp;#125;])&amp;#123;        &amp;quot;acknowledg">
+
+
+
+  <link rel="alternate" href="/atom.xml" title="Arthur's Blog" type="application/atom+xml" />
+
+
+
+
+  <link rel="canonical" href="http://blog.yapo.fun/2018/07/19/mongodb/mongodb-crud/"/>
+
+
+
+<script type="text/javascript" id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>mongodb文档的创建、更新和删除(CUD) | Arthur's Blog</title>
+  
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style type="text/css">
+    .use-motion .motion-element,
+    .use-motion .brand,
+    .use-motion .menu-item,
+    .sidebar-inner,
+    .use-motion .post-block,
+    .use-motion .pagination,
+    .use-motion .comments,
+    .use-motion .post-header,
+    .use-motion .post-body,
+    .use-motion .collection-title { opacity: initial; }
+
+    .use-motion .logo,
+    .use-motion .site-title,
+    .use-motion .site-subtitle {
+      opacity: initial;
+      top: initial;
+    }
+
+    .use-motion {
+      .logo-line-before i { left: initial; }
+      .logo-line-after i { right: initial; }
+    }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Arthur's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="Toggle navigation bar">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+    <a href="/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-home"></i> <br />Home</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+    <a href="/tags/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />Tags</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+    <a href="/categories/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-th"></i> <br />Categories</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+    <a href="/archives/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />Archives</a>
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://blog.yapo.fun/2018/07/19/mongodb/mongodb-crud/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Arthur">
+      <meta itemprop="description" content="Personal Blog, Notes and Everything should be kept">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Arthur's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">mongodb文档的创建、更新和删除(CUD)
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+
+              
+                
+              
+
+              <time title="Created: 2018-07-19 21:11:10" itemprop="dateCreated datePublished" datetime="2018-07-19T21:11:10+08:00">2018-07-19</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">Edited on</span>
+                
+                <time title="Modified: 2019-11-11 21:26:06" itemprop="dateModified" datetime="2019-11-11T21:26:06+08:00">2019-11-11</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/mongodb/" itemprop="url" rel="index"><span itemprop="name">mongodb</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/07/19/mongodb/mongodb-crud/#comments" itemprop="discussionUrl">
+                  <span class="post-meta-item-text">Comments: </span> <span class="post-comments-count gitment-comments-count" data-xid="/2018/07/19/mongodb/mongodb-crud/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h2 id="插入并保存文档"><a href="#插入并保存文档" class="headerlink" title="插入并保存文档"></a>插入并保存文档</h2><ul>
+<li>使用insert直接插入文档，如”db.foo.insert{“bar”:”bazz”}。<strong>_id会自动添加</strong>。</li>
+<li><p>为了提高插入效率，可使用<strong>batchInsert(insertMany)</strong>批量插入。如</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">&gt; db.foo.insertMany([&#123;a:1&#125;,&#123;a:2&#125;])</span><br><span class="line">&#123;</span><br><span class="line">        &quot;acknowledged&quot; : true,</span><br><span class="line">        &quot;insertedIds&quot; : [</span><br><span class="line">                ObjectId(&quot;5b51e76d5f10c91eacafc4ce&quot;),</span><br><span class="line">                ObjectId(&quot;5b51e76d5f10c91eacafc4cf&quot;)</span><br><span class="line">        ]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>mongodb接受的<strong>最大消息长度是48MB</strong>。如果比48MB大，驱动会自动分成多个48MB。</p>
+</li>
+<li>插入校验。<strong>单个文档不大于16MB</strong>。</li>
+</ul>
+<h2 id="删除文档"><a href="#删除文档" class="headerlink" title="删除文档"></a>删除文档</h2><ul>
+<li>使用remove函数删除。不带参数，将删除所有内容。带参数，则删除指定内容</li>
+<li>如果是删除整个集合的所有数据，可以使用remove()不带参数，也可是用<strong>集合的drop</strong>函数。后者更快，但不保留集合。</li>
+</ul>
+<h2 id="更新文档"><a href="#更新文档" class="headerlink" title="更新文档"></a>更新文档</h2><p>使用update函数进行更新。update有两个参数，一个是查询文档，用于定位需要更新的目标文档；另一个是修改器(modifier)，用于说明要对找到的文档进行哪些修改。</p>
+<h3 id="文档替换"><a href="#文档替换" class="headerlink" title="文档替换"></a>文档替换</h3><p>最简单的是用一个新的文档完全替换匹配的文档(不带修改器)。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">&gt; db.user.insertOne(&#123;name:&quot;joe&quot;,friends:32,enemies:2&#125;)</span><br><span class="line">&#123;</span><br><span class="line">        &quot;acknowledged&quot; : true,</span><br><span class="line">        &quot;insertedId&quot; : ObjectId(&quot;5b51ebbe5f10c91eacafc4d2&quot;)</span><br><span class="line">&#125;</span><br><span class="line">&gt; var joe = db.user.findOne(&#123;name:&quot;joe&quot;&#125;)</span><br><span class="line">&gt; joe.friends++</span><br><span class="line">32</span><br><span class="line">&gt; db.user.update(&#123;name:&quot;joe&quot;&#125;,joe)</span><br><span class="line">WriteResult(&#123; &quot;nMatched&quot; : 1, &quot;nUpserted&quot; : 0, &quot;nModified&quot; : 1 &#125;)</span><br></pre></td></tr></table></figure></p>
+<h3 id="使用修改器"><a href="#使用修改器" class="headerlink" title="使用修改器"></a>使用修改器</h3><pre><code>* $set: 指定一个字段的值，如果这个字段不存在，则创建它。
+* $inc: **增加或减少**已有的键值，如果不存在则创建它。**专门用来增建或减少数字**。
+</code></pre><h3 id="数组修改器（很大的一类）"><a href="#数组修改器（很大的一类）" class="headerlink" title="数组修改器（很大的一类）"></a>数组修改器（很大的一类）</h3><pre><code>* 数组甚至可以作set用
+* $push: 如果数组存在，则在末尾添加；不存在则创建。
+</code></pre><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">&gt; db.blog.insertOne(&#123;title:&quot;a blog&quot;,content:&quot;....&quot;&#125;)</span><br><span class="line">&#123;</span><br><span class="line">        &quot;acknowledged&quot; : true,</span><br><span class="line">        &quot;insertedId&quot; : ObjectId(&quot;5b51eff340c251ed8729cd28&quot;)</span><br><span class="line">&#125;</span><br><span class="line">&gt; db.blog.update(&#123;title:&quot;a blog&quot;&#125;, &#123;$push:&#123;comments:&#123;name:&quot;yyp&quot;,content:&quot;a good post&quot;&#125;&#125;&#125;)</span><br><span class="line">WriteResult(&#123; &quot;nMatched&quot; : 1, &quot;nUpserted&quot; : 0, &quot;nModified&quot; : 1 &#125;)</span><br><span class="line">&gt; db.blog.findOne()</span><br><span class="line">&#123;</span><br><span class="line">        &quot;_id&quot; : ObjectId(&quot;5b51eff340c251ed8729cd28&quot;),</span><br><span class="line">        &quot;title&quot; : &quot;a blog&quot;,</span><br><span class="line">        &quot;content&quot; : &quot;....&quot;,</span><br><span class="line">        &quot;comments&quot; : [</span><br><span class="line">                &#123;</span><br><span class="line">                        &quot;name&quot; : &quot;yyp&quot;,</span><br><span class="line">                        &quot;content&quot; : &quot;a good post&quot;</span><br><span class="line">                &#125;</span><br><span class="line">        ]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<pre><code>* 使用$each操作一个数组，可以一次$push多个添加值.
+</code></pre><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">&gt; db.blog.update(&#123;title:&quot;a blog&quot;&#125;,&#123;$push:&#123;year:&#123;$each:[2007,2008,2009]&#125;&#125;&#125;)</span><br><span class="line">WriteResult(&#123; &quot;nMatched&quot; : 1, &quot;nUpserted&quot; : 0, &quot;nModified&quot; : 1 &#125;)</span><br><span class="line">&gt; db.blog.findOne()</span><br><span class="line">&#123;</span><br><span class="line">        &quot;_id&quot; : ObjectId(&quot;5b51eff340c251ed8729cd28&quot;),</span><br><span class="line">        &quot;title&quot; : &quot;a blog&quot;,</span><br><span class="line">        &quot;content&quot; : &quot;....&quot;,</span><br><span class="line">        &quot;comments&quot; : [</span><br><span class="line">                &#123;</span><br><span class="line">                        &quot;name&quot; : &quot;yyp&quot;,</span><br><span class="line">                        &quot;content&quot; : &quot;a good post&quot;</span><br><span class="line">                &#125;</span><br><span class="line">        ],</span><br><span class="line">        &quot;year&quot; : [</span><br><span class="line">                2007,</span><br><span class="line">                2008,</span><br><span class="line">                2009</span><br><span class="line">        ]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<pre><code>* $slice: **值必须是负数**，用来固定数组的最大长度。与$each和$push配合使用。在删除元素之前(如果元素超过最大限度），可以用$sort排序。
+</code></pre><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">db.movies.update(&#123;&quot;genre&quot;:&quot;horror&quot;&#125;,</span><br><span class="line">        &#123;$push:&#123;top10:&#123;</span><br><span class="line">                $each:[1,2,3,4,5,6,7,8,9,10,11],</span><br><span class="line">                $slice:-10,</span><br><span class="line">                $sort:&#123;rating:-1&#125;&#125;&#125;&#125;)</span><br></pre></td></tr></table></figure>
+<pre><code>* 将数组作为数据集(set).
+    * 使用$push和$ne组合，能添加一个。但不如直接使用$addToSet
+    * $addToSet，可以避免重复插入；和$each配合，能添加多个
+* 删除元素：
+    * $pop:头或尾删除一个，{$pop:{&quot;key&quot;:1}} 从数组末尾删除元素；{$pop:{&quot;key&quot;:-1}}从头删除元素
+    * $pull,会删除所有匹配的，如果数组中有多个，则多个都会被删除。
+* 基于位置的修改器：如果数组有多个值，而我们只想对一部分进行操作，有两种方法操作数组中的值：通过位置(下标从0开始)或者定位操作符&quot;$&quot;
+</code></pre><h3 id="upsert"><a href="#upsert" class="headerlink" title="upsert"></a>upsert</h3><p><strong>作为udpate函数的第三个参数</strong>，是一种特殊的更新。要是没有找到符合条件的文档，就会使用<strong>这个条件和更新文档为基础创建一个新文档</strong>，如果找到了匹配的文档则正常更新。<br>是一个原子操作，可以减少竞争条件。<br>save()函数：如果文档不存在则创建，如果存在则更新。如果文档存在”_id”键，save会调用upsert，否则调用insert。</p>
+<h3 id="更新多个文档。"><a href="#更新多个文档。" class="headerlink" title="更新多个文档。"></a>更新多个文档。</h3><p><strong>update函数的第4个参数</strong>。默认为false，即只更新第一个匹配条件的文档。<strong>update函数在3.1的<a href="(http://mongodb.github.io/node-mongodb-native/3.1/api/Collection.html#update">nodejs API</a>中被标记为deprecated,现在应该使用updateOne或者updateMany</strong>。<br>trick: 获取最后一次命令执行的结果, “db.runCommand({getLastError:1})”</p>
+<h3 id="返回更新的文档"><a href="#返回更新的文档" class="headerlink" title="返回更新的文档"></a>返回更新的文档</h3><p>调用getLastError可以获取更新的有限信息，但是不能获取更新的文档。<strong>可以通过findAndModify命令得到被更新的文档。这对于操作队列及执行其他需要进行原子性取值和赋值的操作十分方便。</strong><br>findAndModify is deprecated, <a href="http://mongodb.github.io/node-mongodb-native/3.1/api/Collection.html#findAndModify" target="_blank" rel="noopener">use findOneAndUpdate, findOneAndReplace or findOneAndDelete instead</a></p>
+<h2 id="写入安全机制"><a href="#写入安全机制" class="headerlink" title="写入安全机制"></a>写入安全机制</h2><ul>
+<li><strong>写入安全(write concern)</strong>是一种客户端设置，用于控制写入的安全级别。</li>
+<li>两种基本的安全写入机制是应答式写入(acknowlege write)和非应答式写入(unackowledge write)。应答式写入：数据库会给出相应，告诉你写入的操作是否成功。非应答式写入：不返回任何响应，所以不知道写入是否成功。</li>
+</ul>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/数据库/" rel="tag"># 数据库</a>
+          
+            <a href="/tags/mongodb/" rel="tag"># mongodb</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/07/18/mongodb/mongodb-basic-knowledge/" rel="next" title="mongodb基础知识">
+                <i class="fa fa-chevron-left"></i> mongodb基础知识
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/07/22/mongodb/mongo-find/" rel="prev" title="mongodb 查询(Find/Read)">
+                mongodb 查询(Find/Read) <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  
+    <div class="comments" id="comments">
+      
+        <div id="gitment-container"></div>
+      
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Arthur</p>
+              <p class="site-description motion-element" itemprop="description">Personal Blog, Notes and Everything should be kept</p>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">61</span>
+                    <span class="site-state-item-name">posts</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  <a href="/categories/index.html">
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">6</span>
+                    <span class="site-state-item-name">categories</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  <a href="/tags/index.html">
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">34</span>
+                    <span class="site-state-item-name">tags</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+            <div class="feed-link motion-element">
+              <a href="/atom.xml" rel="alternate">
+                <i class="fa fa-rss"></i>
+                RSS
+              </a>
+            </div>
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#插入并保存文档"><span class="nav-number">1.</span> <span class="nav-text">插入并保存文档</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#删除文档"><span class="nav-number">2.</span> <span class="nav-text">删除文档</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#更新文档"><span class="nav-number">3.</span> <span class="nav-text">更新文档</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#文档替换"><span class="nav-number">3.1.</span> <span class="nav-text">文档替换</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#使用修改器"><span class="nav-number">3.2.</span> <span class="nav-text">使用修改器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#数组修改器（很大的一类）"><span class="nav-number">3.3.</span> <span class="nav-text">数组修改器（很大的一类）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#upsert"><span class="nav-number">3.4.</span> <span class="nav-text">upsert</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#更新多个文档。"><span class="nav-number">3.5.</span> <span class="nav-text">更新多个文档。</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#返回更新的文档"><span class="nav-number">3.6.</span> <span class="nav-text">返回更新的文档</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#写入安全机制"><span class="nav-number">4.</span> <span class="nav-text">写入安全机制</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Arthur</span>
+
+  
+
+  
+</div>
+
+
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> v3.7.1</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://theme-next.org">NexT.Pisces</a> v6.3.0</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=6.3.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=6.3.0"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=6.3.0"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=6.3.0"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=6.3.0"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=6.3.0"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=6.3.0"></script>
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+<!-- LOCAL: You can save these files to your site and update links -->
+    
+        
+        <link rel="stylesheet" href="https://aimingoo.github.io/gitmint/style/default.css">
+        <script src="https://aimingoo.github.io/gitmint/dist/gitmint.browser.js"></script>
+    
+<!-- END LOCAL -->
+
+    
+
+    
+      <script type="text/javascript">
+      function renderGitment(){
+        var gitment = new Gitmint({
+            id: window.location.pathname,
+            owner: 'ShingYang',
+            repo: 'ShingYang.github.io',
+            
+            lang: "" || navigator.language || navigator.systemLanguage || navigator.userLanguage,
+            
+            oauth: {
+            
+            
+                client_secret: '23e4590b8427cdef66c3c0038c9fb29dfd9106bc',
+            
+                client_id: '3971199b02eb0109e893'
+            }});
+        gitment.render('gitment-container');
+      }
+
+      
+      renderGitment();
+      
+      </script>
+    
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

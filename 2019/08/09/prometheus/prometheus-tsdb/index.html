@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=6.3.0" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=6.3.0">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=6.3.0" color="#222">
+
+
+
+
+
+
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '6.3.0',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="这个博客和这个talk将为您提供有关TSDB如何工作的高级概念，但对于那些想要了解的人来说，这将是一篇较低级别的详细博文。这将有助于人们更好地理解内部结构，并可能成为那些希望做出贡献的人的起点。 基础TSDB是一个数据库。它存储时间序列数据。现在什么是时间序列？时间序列是一系列样本，其中每个样本都是时间戳和值。即一个时间序列是[（t0，v0），（t1 v1），（t2，v2）……] 现在几乎每个地方">
+<meta name="keywords" content="prometheus,监控">
+<meta property="og:type" content="article">
+<meta property="og:title" content="prometheus tsdb deeper and lower (1)">
+<meta property="og:url" content="http://blog.yapo.fun/2019/08/09/prometheus/prometheus-tsdb/index.html">
+<meta property="og:site_name" content="Arthur&#39;s Blog">
+<meta property="og:description" content="这个博客和这个talk将为您提供有关TSDB如何工作的高级概念，但对于那些想要了解的人来说，这将是一篇较低级别的详细博文。这将有助于人们更好地理解内部结构，并可能成为那些希望做出贡献的人的起点。 基础TSDB是一个数据库。它存储时间序列数据。现在什么是时间序列？时间序列是一系列样本，其中每个样本都是时间戳和值。即一个时间序列是[（t0，v0），（t1 v1），（t2，v2）……] 现在几乎每个地方">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2019-11-11T13:26:06.037Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="prometheus tsdb deeper and lower (1)">
+<meta name="twitter:description" content="这个博客和这个talk将为您提供有关TSDB如何工作的高级概念，但对于那些想要了解的人来说，这将是一篇较低级别的详细博文。这将有助于人们更好地理解内部结构，并可能成为那些希望做出贡献的人的起点。 基础TSDB是一个数据库。它存储时间序列数据。现在什么是时间序列？时间序列是一系列样本，其中每个样本都是时间戳和值。即一个时间序列是[（t0，v0），（t1 v1），（t2，v2）……] 现在几乎每个地方">
+
+
+
+  <link rel="alternate" href="/atom.xml" title="Arthur's Blog" type="application/atom+xml" />
+
+
+
+
+  <link rel="canonical" href="http://blog.yapo.fun/2019/08/09/prometheus/prometheus-tsdb/"/>
+
+
+
+<script type="text/javascript" id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>prometheus tsdb deeper and lower (1) | Arthur's Blog</title>
+  
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style type="text/css">
+    .use-motion .motion-element,
+    .use-motion .brand,
+    .use-motion .menu-item,
+    .sidebar-inner,
+    .use-motion .post-block,
+    .use-motion .pagination,
+    .use-motion .comments,
+    .use-motion .post-header,
+    .use-motion .post-body,
+    .use-motion .collection-title { opacity: initial; }
+
+    .use-motion .logo,
+    .use-motion .site-title,
+    .use-motion .site-subtitle {
+      opacity: initial;
+      top: initial;
+    }
+
+    .use-motion {
+      .logo-line-before i { left: initial; }
+      .logo-line-after i { right: initial; }
+    }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Arthur's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="Toggle navigation bar">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+    <a href="/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-home"></i> <br />Home</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+    <a href="/tags/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />Tags</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+    <a href="/categories/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-th"></i> <br />Categories</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+    <a href="/archives/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />Archives</a>
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://blog.yapo.fun/2019/08/09/prometheus/prometheus-tsdb/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Arthur">
+      <meta itemprop="description" content="Personal Blog, Notes and Everything should be kept">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Arthur's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">prometheus tsdb deeper and lower (1)
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+
+              
+                
+              
+
+              <time title="Created: 2019-08-09 13:58:30" itemprop="dateCreated datePublished" datetime="2019-08-09T13:58:30+08:00">2019-08-09</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">Edited on</span>
+                
+                <time title="Modified: 2019-11-11 21:26:06" itemprop="dateModified" datetime="2019-11-11T21:26:06+08:00">2019-11-11</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/监控/" itemprop="url" rel="index"><span itemprop="name">监控</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2019/08/09/prometheus/prometheus-tsdb/#comments" itemprop="discussionUrl">
+                  <span class="post-meta-item-text">Comments: </span> <span class="post-comments-count gitment-comments-count" data-xid="/2019/08/09/prometheus/prometheus-tsdb/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>这个<a href="https://fabxc.org/tsdb/" target="_blank" rel="noopener">博客</a>和这个<a href="https://www.youtube.com/watch?v=b_pEevMAC3I" target="_blank" rel="noopener">talk</a>将为您提供有关TSDB如何工作的高级概念，但对于那些想要了解的人来说，这将是一篇较低级别的详细博文。这将有助于人们更好地理解内部结构，并可能成为那些希望做出贡献的人的起点。</p>
+<h1 id="基础"><a href="#基础" class="headerlink" title="基础"></a>基础</h1><p>TSDB是一个数据库。它存储时间序列数据。现在什么是时间序列？时间序列是一系列样本，其中每个样本都是时间戳和值。即一个时间序列是[（t0，v0），（t1 v1），（t2，v2）……]</p>
+<p>现在几乎每个地方都存在时间序列，例如，Austin的天气就是一个例子：<br>[（2017年12月5日下午1点，22点），（2017年12月6日下午1点，6点），（2017年12月7日，-1）….]，除了tsdb采用毫秒精度时间戳和只有float64值。但是我们如何表示或命名时间序列？我们用一组(labelname=labelvalue)表示每个时间序列。例如，Austin的天气可以表示为{name=weather,place=austin,unit=celsius}。</p>
+<p>现在我们需要存储数百万个序列的数据，每个序列都有数百万个样本。然后我们需要能够查询数据。查询现在是二维的，即我们不仅选择时间序列来检索样本数据，还选择时间范围来选择数据。指定时间范围很容易，它只是说从t=t0到t=t1</p>
+<p>现在，在选择时间序列时，我们的数据模型非常容易。我们只需指定labelname-labelvalue约束。例如，要选择<strong>所有</strong>天气时间序列，我们只需使用{name=weather}进行查询。要为Austin选择天气，您只需查询：{name=weather,place=austin}。但约束不仅仅是一个简单的等于约束，我们也有不等于和正则表达式。例如，为Austin以外的每个城市选择天气数据只是:{name=weather,place!=austin}。对于高级用例，我们可以使用类似{name=weather,place=~au.*}的内容，其中=~这里代表正则表达式约束，以选择以”au”开头的所有城市的天气数据。</p>
+<h1 id="高级视图"><a href="#高级视图" class="headerlink" title="高级视图"></a>高级视图</h1><p>现在我们知道了数据和查询的是怎样的，让我们看看tsdb的结构以及它是如何实现的。现在我们有很多数据和很多序列，我们需要存储数据然后有一个索引来帮助我们查询存储的数据。</p>
+<h2 id="数据存储格式"><a href="#数据存储格式" class="headerlink" title="数据存储格式"></a>数据存储格式</h2><p>每个序列的数据都是单独存储的，我们需要存储大量数据。样本是时间戳和值，如果我们有8字节时间戳和8字节值，则每个样本有16个字节。如果我们有500万活跃时间序列，摄入时间为30秒，我们每秒会摄取166K样本，如果我们想将这些数据存储1个月，我们需要7TB的存储空间，如果我们愿意的话存储6个月的数据，然后它会爆炸到42TB，这是一个很大的空间。我们做了一些很好的压缩，使得处理大量数据成为可能。</p>
+<p>这种压缩来自<a href="gorilla paper">Facebook的gorilla论文</a>。我们分别压缩时间戳和值。我们使用Prometheus定期搜索数据的属性。</p>
+<p>现在从压缩我们可以看到，要访问第n个样本，您需要知道第n个样本，依此类推，直到第一个样本。现在你不想解压缩潜在的数十万个值来访问最后一个样本，或者中间的一些样本。因此，我们将数据分块，即将大约120个样本存储(chunk)在一起，并标记这120个样本的开始和结束时间。如果我们需要在特定时间戳访问该值，我们将找到该序列的相关块(chunk)并开始解码。</p>
+<p>现在，实际数据存储在大块文件中，其中每个块(chunk)彼此相邻放置，块的开始的偏移量存储在索引中。</p>
+<h2 id="索引"><a href="#索引" class="headerlink" title="索引"></a>索引</h2><p>现在，当我们累积数据时，每个序列最终会有几个块。<a href="https://github.com/prometheus/tsdb/blob/master/docs/format/index.md" target="_blank" rel="noopener">索引</a>需要帮助我们回答查询，这有助于将labelvalue-labelname匹配器约束转换为具有所有块(chunk)的序列。我们为每个系列分配增量序列ID(seriesID)，然后为每个（lname，lvalue）对构建一个排序<a href="https://github.com/prometheus/tsdb/blob/master/docs/format/index.md" target="_blank" rel="noopener">posting list</a>。即，我们将所有具有该(lname，lvalue)对的序列存储在其labelset中。例如：</p>
+<p>name = weather 10,16,20,22,30,35,50,60,75,100,110,120<br>city = austin 10,12,20,25,50,108,120</p>
+<p>现在，当我们想要回答查询{name=weather,city=austin}时，我们只需要获取<a href="two series">两个序列</a>并获得<a href="https://github.com/prometheus/tsdb/blob/07ef80820ef1250db82f9544f3fcf7f0f63ccee0/querier.go" target="_blank" rel="noopener">id的交集</a>，这应该为我们提供满足查询的所有序列。这里我们基本上采用了所有匹配”name = weather”的序列，并将那些与”city=austin”匹配的序列相交。虽然我们可以回答简单的相等查询，但我们将无法回答正则表达式和不等于查询。</p>
+<p>为此，我们为每个labelname<a href="https://github.com/prometheus/tsdb/blob/07ef80820ef1250db82f9544f3fcf7f0f63ccee0/querier.go" target="_blank" rel="noopener">存储所有可能的labelvalue</a>：</p>
+<p>city: [austin, auckland, hyderabad, berlin, munich…]<br>name: [temp, weather, humidity, … ]</p>
+<p>当我们得到一个正则表达式查询时，我们查看哪个值匹配正则表达式，查询然后检索该posting list。即。如果我们有austin, auckland, pittsburgh，如果我们有正则表达式查询”au.<em>“，我们将检查哪个标签值匹配”au.</em>“，在这种情况下austin和auckland，并获得城市的发布列表city=austin, city=auckland。然后我们将使用seriesID的并集来获得与正则表达式匹配器匹配的seriesID。</p>
+<p>现在我们已经有了相关的序列，我们需要找到该序列的相关块。在索引本身，我们还存储了seriesID-&gt;[chunk1，chunk2，chunk3 ……]映射，其中我们将开始时间，结束时间和偏移量存储到块文件中块的开头。</p>
+<p>现在你可以看到，一旦我们得到一个查询，我们从匹配器中找到相关的序列，然后在指定的时间范围内找到所有重叠的块(chunk)并解码它们以获得所有相关的值。</p>
+<p>—————— INCOMPLETE —————–</p>
+<h2 id="多个DB"><a href="#多个DB" class="headerlink" title="多个DB"></a>多个DB</h2><p>现在，序列不是恒定的。他们来去匆匆。有些序列只收到几个小时样本，而我们的数据库可以保存数月的数据。现在，如果我们有一个包含所有序列的大型索引，那么如果我们请求2小时的数据，可能只有100K序列在那个时间段内收到了样本，但我们在整个过程中收到样本时间范围内可能有超过5M的序列。这意味着每个查询，即使在1分钟的时间范围内，也会触及所有序列的巨大膨胀指数，这只会随着数据库变大而变得更糟。</p>
+<p>这是Prometheus之前数据库的问题之一。实际上要解决这个问题(此处文档不完善,需要插入sharding的逻辑和好处)</p>
+<h1 id="internals"><a href="#internals" class="headerlink" title="internals"></a>internals</h1><p>现在让我们看看应用程序如何使用tsdb并查看内部结构。该应用程序使用<a href="https://gist.github.com/Gouthamve/752a312efe40268a8d4ef844c95ed0d2" target="_blank" rel="noopener"><code>* tsdb.DB</code>对象</a>.</p>
+<p>这里我们创建一个db，传递一个文件夹和选项。选项基本上是说，将<a href="https://en.wikipedia.org/wiki/Write-ahead_logging" target="_blank" rel="noopener">预写日志记录</a>到磁盘，丢弃超过15天的数据，并将大小为15分钟的块，然后压缩到1小时，然后压缩到4小时的最大时间范围。</p>
+<p>现在，该应用程序使用一个appender：<a href="https://godoc.org/github.com/prometheus/tsdb#Appender" target="_blank" rel="noopener">tsdb.Appender</a> 。当我们执行<a href="https://github.com/prometheus/tsdb/blob/07ef80820ef1250db82f9544f3fcf7f0f63ccee0/head.go#L480-L493" target="_blank" rel="noopener">app.Add(serries,sample)</a>时，我们检查数据库中是否存在序列，如果序列存在,则获取其ref，然后在appender中对ref添加样本。如果序列不存在，请在数据库中创建系列，然后将其添加到新的ref。<a href="https://github.com/prometheus/tsdb/blob/07ef80820ef1250db82f9544f3fcf7f0f63ccee0/head.go#L878-L891" target="_blank" rel="noopener">CODE</a></p>
+<p>当我们调用<a href="https://github.com/prometheus/tsdb/blob/07ef80820ef1250db82f9544f3fcf7f0f63ccee0/head.go#L524-L563" target="_blank" rel="noopener">Commit()</a>时，我们继续将数据添加到 * head中的实际序列中，使其可用于查询而不仅仅是在appender中。</p>
+<p>注意：这不是孤立的，查询有时可以从提交中读取部分数据。</p>
+<p><strong>注: 这个问题已经有PR解决了<a href="https://github.com/prometheus/tsdb/pull/306" target="_blank" rel="noopener">https://github.com/prometheus/tsdb/pull/306</a></strong></p>
+<p>————– INCOMPLETE, SKIP ———————</p>
+<h2 id="追加路径"><a href="#追加路径" class="headerlink" title="追加路径"></a>追加路径</h2><p>现在我们看到数据被附加到<code>db.head</code>内存块，我们在上面解释的在内存中维护的可变块。它有序列索引LIKE THIS和实际系列存储在这里。</p>
+<p>现在当我们调用<code>Appender()</code>时，我们创建了headAppender结构，它存储了该事务的所有数据。现在，当我们调用Add()时，我们在这里添加数据，我们在这里创建序列。</p>
+<p>当调用commit时，我们继续将序列附加到引用的序列中。</p>
+<hr>
+<h2 id="压缩路径"><a href="#压缩路径" class="headerlink" title="压缩路径"></a>压缩路径</h2><p>现在，我们需要定期将头块刷新到磁盘以减少内存使用量。我们根据时间范围而不是头块大小进行刷新。这个持续时间是我们在选项中传递的最小块大小，在这种情况下，它是15分钟。</p>
+<p>现在每个<a href="https://github.com/prometheus/tsdb/blob/07ef80820ef1250db82f9544f3fcf7f0f63ccee0/db.go#L331-L402" target="_blank" rel="noopener">压缩循环</a>，<a href="https://github.com/prometheus/tsdb/blob/07ef80820ef1250db82f9544f3fcf7f0f63ccee0/db.go#L250" target="_blank" rel="noopener">每1分钟</a>，我们检查一下<a href="https://github.com/prometheus/tsdb/blob/07ef80820ef1250db82f9544f3fcf7f0f63ccee0/db.go#L347-L351" target="_blank" rel="noopener">头块是否有超过22.5分钟（1.5 * 15分钟）的未刷入数据</a>。这个0.5的缓冲区是为了确保我们可以附加旧的时间戳。<a href="https://github.com/prometheus/tsdb/blob/07ef80820ef1250db82f9544f3fcf7f0f63ccee0/db.go#L352-L362" target="_blank" rel="noopener">如果确实存在22.5分钟的数据，我们将最后15分钟的数据作为新块刷新到磁盘</a>并<a href="https://github.com/prometheus/tsdb/blob/def6e5a57439cffe7b44a619c05bce4ac513a63e/db.go#L556" target="_blank" rel="noopener">从内存中删除数据</a>。</p>
+<p>现在我们还谈到了随着时间的增长，我们如何将较小的块压缩成更大的块。如果headblock足够小以至于不能刷入，我们会看是否有任何需要压缩的块。如果有，我们收集它们，<a href="https://github.com/prometheus/tsdb/blob/07ef80820ef1250db82f9544f3fcf7f0f63ccee0/db.go#L389-L391" target="_blank" rel="noopener">然后将它们压缩在一起</a>。</p>
+<h2 id="请求路径"><a href="#请求路径" class="headerlink" title="请求路径"></a>请求路径</h2><p>现在让我们看看查询是如何工作的。 这稍微复杂一些。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">q, err := db.Querier(1, 1000)</span><br><span class="line"></span><br><span class="line">rem, err := labels.NewRegexpMatcher(&quot;a&quot;, &quot;b.*&quot;)</span><br><span class="line">seriesSet, err := q.Select(rem)</span><br><span class="line"></span><br><span class="line">for seriesSet.Next() &#123;</span><br><span class="line">	// Get each Series</span><br><span class="line">	s := seriesSet.At()</span><br><span class="line">	fmt.Println(&quot;Labels:&quot;, s.Labels())</span><br><span class="line">	fmt.Println(&quot;Data:&quot;)</span><br><span class="line">	it := s.Iterator()</span><br><span class="line">	for it.Next() &#123;</span><br><span class="line">		ts, v := it.At()</span><br><span class="line">		fmt.Println(&quot;ts =&quot;, ts, &quot;v =&quot;, v)</span><br><span class="line">	&#125;</span><br><span class="line">	if err := it.Err(); err != nil &#123;</span><br><span class="line">		panic(err)</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>我们首先获得最小时间和最大时间的查询器，然后根据匹配器选择序列。 对于每个序列，我们检索标签和样本。</p>
+<p>现在当<a href="https://github.com/prometheus/tsdb/blob/master/db.go#L634-L666" target="_blank" rel="noopener">db.Querier(1,1000)</a>时，我们将选取传递时间范围数据的所有存储块。当调用q.Select时，我们继续并获取<a href="https://github.com/prometheus/tsdb/blob/07ef80820ef1250db82f9544f3fcf7f0f63ccee0/querier.go#L211" target="_blank" rel="noopener">每个匹配器的postings list</a>并将<a href="https://github.com/prometheus/tsdb/blob/07ef80820ef1250db82f9544f3fcf7f0f63ccee0/querier.go#L217" target="_blank" rel="noopener">它们相交</a>。</p>
+<p>现在，我们有了seriesID，我们在这些seriesID上<a href="https://github.com/prometheus/tsdb/blob/07ef80820ef1250db82f9544f3fcf7f0f63ccee0/querier.go#L156-L170" target="_blank" rel="noopener">返回迭代器</a>。现在，每当调用seriesSet.Next()时，我们首先获取该seriesID的<a href="https://github.com/prometheus/tsdb/blob/07ef80820ef1250db82f9544f3fcf7f0f63ccee0/querier.go#L508-L516" target="_blank" rel="noopener">labelset</a>和chunk元数据，然后从<a href="https://github.com/prometheus/tsdb/blob/07ef80820ef1250db82f9544f3fcf7f0f63ccee0/querier.go#L588" target="_blank" rel="noopener">实际的chunk文件中查找块</a>。</p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/prometheus/" rel="tag"># prometheus</a>
+          
+            <a href="/tags/监控/" rel="tag"># 监控</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/07/18/golang/golang-time-json/" rel="next" title="golang time 序列化反序列化">
+                <i class="fa fa-chevron-left"></i> golang time 序列化反序列化
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2019/08/12/prometheus/prometheus-tsdb-deeper-and-lower-2/" rel="prev" title="prometheus tsdb deeper and lower(2) - Krasi’s Notes! ">
+                prometheus tsdb deeper and lower(2) - Krasi’s Notes!  <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  
+    <div class="comments" id="comments">
+      
+        <div id="gitment-container"></div>
+      
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Arthur</p>
+              <p class="site-description motion-element" itemprop="description">Personal Blog, Notes and Everything should be kept</p>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">61</span>
+                    <span class="site-state-item-name">posts</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  <a href="/categories/index.html">
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">6</span>
+                    <span class="site-state-item-name">categories</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  <a href="/tags/index.html">
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">34</span>
+                    <span class="site-state-item-name">tags</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+            <div class="feed-link motion-element">
+              <a href="/atom.xml" rel="alternate">
+                <i class="fa fa-rss"></i>
+                RSS
+              </a>
+            </div>
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#基础"><span class="nav-number">1.</span> <span class="nav-text">基础</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#高级视图"><span class="nav-number">2.</span> <span class="nav-text">高级视图</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#数据存储格式"><span class="nav-number">2.1.</span> <span class="nav-text">数据存储格式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#索引"><span class="nav-number">2.2.</span> <span class="nav-text">索引</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#多个DB"><span class="nav-number">2.3.</span> <span class="nav-text">多个DB</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#internals"><span class="nav-number">3.</span> <span class="nav-text">internals</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#追加路径"><span class="nav-number">3.1.</span> <span class="nav-text">追加路径</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#压缩路径"><span class="nav-number">3.2.</span> <span class="nav-text">压缩路径</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#请求路径"><span class="nav-number">3.3.</span> <span class="nav-text">请求路径</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Arthur</span>
+
+  
+
+  
+</div>
+
+
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> v3.7.1</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://theme-next.org">NexT.Pisces</a> v6.3.0</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=6.3.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=6.3.0"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=6.3.0"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=6.3.0"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=6.3.0"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=6.3.0"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=6.3.0"></script>
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+<!-- LOCAL: You can save these files to your site and update links -->
+    
+        
+        <link rel="stylesheet" href="https://aimingoo.github.io/gitmint/style/default.css">
+        <script src="https://aimingoo.github.io/gitmint/dist/gitmint.browser.js"></script>
+    
+<!-- END LOCAL -->
+
+    
+
+    
+      <script type="text/javascript">
+      function renderGitment(){
+        var gitment = new Gitmint({
+            id: window.location.pathname,
+            owner: 'ShingYang',
+            repo: 'ShingYang.github.io',
+            
+            lang: "" || navigator.language || navigator.systemLanguage || navigator.userLanguage,
+            
+            oauth: {
+            
+            
+                client_secret: '23e4590b8427cdef66c3c0038c9fb29dfd9106bc',
+            
+                client_id: '3971199b02eb0109e893'
+            }});
+        gitment.render('gitment-container');
+      }
+
+      
+      renderGitment();
+      
+      </script>
+    
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

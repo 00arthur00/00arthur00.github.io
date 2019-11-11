@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=6.3.0" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=6.3.0">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=6.3.0" color="#222">
+
+
+
+
+
+
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '6.3.0',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="原文基于prometheus2.8 在Prometheus服务器上的/api/v1下可以访问当前稳定的HTTP API。 将在该端点下添加任何非破坏性的添加项。 格式概述API响应格式是JSON。每个成功的API请求都会返回2xx状态代码。 到达API处理程序的无效请求将返回JSON错误对象和以下HTTP响应代码之一：  400 Bad Request，当参数缺失或参数不正确时 422 Unpro">
+<meta name="keywords" content="prometheus,监控">
+<meta property="og:type" content="article">
+<meta property="og:title" content="prometheus查询HTTP API">
+<meta property="og:url" content="http://blog.yapo.fun/2019/03/23/prometheus/query/prometheus-querying-http-api/index.html">
+<meta property="og:site_name" content="Arthur&#39;s Blog">
+<meta property="og:description" content="原文基于prometheus2.8 在Prometheus服务器上的/api/v1下可以访问当前稳定的HTTP API。 将在该端点下添加任何非破坏性的添加项。 格式概述API响应格式是JSON。每个成功的API请求都会返回2xx状态代码。 到达API处理程序的无效请求将返回JSON错误对象和以下HTTP响应代码之一：  400 Bad Request，当参数缺失或参数不正确时 422 Unpro">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2019-11-11T13:26:06.037Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="prometheus查询HTTP API">
+<meta name="twitter:description" content="原文基于prometheus2.8 在Prometheus服务器上的/api/v1下可以访问当前稳定的HTTP API。 将在该端点下添加任何非破坏性的添加项。 格式概述API响应格式是JSON。每个成功的API请求都会返回2xx状态代码。 到达API处理程序的无效请求将返回JSON错误对象和以下HTTP响应代码之一：  400 Bad Request，当参数缺失或参数不正确时 422 Unpro">
+
+
+
+  <link rel="alternate" href="/atom.xml" title="Arthur's Blog" type="application/atom+xml" />
+
+
+
+
+  <link rel="canonical" href="http://blog.yapo.fun/2019/03/23/prometheus/query/prometheus-querying-http-api/"/>
+
+
+
+<script type="text/javascript" id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>prometheus查询HTTP API | Arthur's Blog</title>
+  
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style type="text/css">
+    .use-motion .motion-element,
+    .use-motion .brand,
+    .use-motion .menu-item,
+    .sidebar-inner,
+    .use-motion .post-block,
+    .use-motion .pagination,
+    .use-motion .comments,
+    .use-motion .post-header,
+    .use-motion .post-body,
+    .use-motion .collection-title { opacity: initial; }
+
+    .use-motion .logo,
+    .use-motion .site-title,
+    .use-motion .site-subtitle {
+      opacity: initial;
+      top: initial;
+    }
+
+    .use-motion {
+      .logo-line-before i { left: initial; }
+      .logo-line-after i { right: initial; }
+    }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Arthur's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="Toggle navigation bar">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+    <a href="/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-home"></i> <br />Home</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+    <a href="/tags/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />Tags</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+    <a href="/categories/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-th"></i> <br />Categories</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+    <a href="/archives/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />Archives</a>
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://blog.yapo.fun/2019/03/23/prometheus/query/prometheus-querying-http-api/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Arthur">
+      <meta itemprop="description" content="Personal Blog, Notes and Everything should be kept">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Arthur's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">prometheus查询HTTP API
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+
+              
+                
+              
+
+              <time title="Created: 2019-03-23 18:36:00" itemprop="dateCreated datePublished" datetime="2019-03-23T18:36:00+08:00">2019-03-23</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">Edited on</span>
+                
+                <time title="Modified: 2019-11-11 21:26:06" itemprop="dateModified" datetime="2019-11-11T21:26:06+08:00">2019-11-11</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/监控/" itemprop="url" rel="index"><span itemprop="name">监控</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2019/03/23/prometheus/query/prometheus-querying-http-api/#comments" itemprop="discussionUrl">
+                  <span class="post-meta-item-text">Comments: </span> <span class="post-comments-count gitment-comments-count" data-xid="/2019/03/23/prometheus/query/prometheus-querying-http-api/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p><a href="https://prometheus.io/docs/prometheus/2.8/querying/api/" target="_blank" rel="noopener">原文</a>基于prometheus2.8</p>
+<p>在Prometheus服务器上的<code>/api/v1</code>下可以访问当前稳定的HTTP API。 将在该端点下添加任何非破坏性的添加项。</p>
+<h2 id="格式概述"><a href="#格式概述" class="headerlink" title="格式概述"></a>格式概述</h2><p>API响应格式是JSON。每个成功的API请求都会返回2xx状态代码。</p>
+<p>到达API处理程序的无效请求将返回JSON错误对象和以下HTTP响应代码之一：</p>
+<ul>
+<li>400 Bad Request，当参数缺失或参数不正确时</li>
+<li>422 Unprocessable Entity，当一个表达式不能被执行时<a href="https://tools.ietf.org/html/rfc4918#page-78" target="_blank" rel="noopener"><code>(RFC4918)</code></a>.</li>
+<li>503 Service Unavailable，当请求超时或者异常终止</li>
+</ul>
+<p>对于在到达API端点之前发生的错误，可能返回其他非2xx代码。</p>
+<p>如果存在不阻止请求执行的错误，则可以返回警告数组。成功收集的所有数据都将在数据字段中返回。</p>
+<p>JSON响应信封格式如下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  &quot;status&quot;: &quot;success&quot; | &quot;error&quot;,</span><br><span class="line">  &quot;data&quot;: &lt;data&gt;,</span><br><span class="line"></span><br><span class="line">  // Only set if status is &quot;error&quot;. The data field may still hold</span><br><span class="line">  // additional data.</span><br><span class="line">  &quot;errorType&quot;: &quot;&lt;string&gt;&quot;,</span><br><span class="line">  &quot;error&quot;: &quot;&lt;string&gt;&quot;,</span><br><span class="line"></span><br><span class="line">  // Only if there were warnings while executing the request.</span><br><span class="line">  // There will still be data in the data field.</span><br><span class="line">  &quot;warnings&quot;: [&quot;&lt;string&gt;&quot;]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>输入时间戳可以以RFC3339格式提供，也可以以秒为单位提供给Unix时间戳，可选的小数位数用于亚秒级精度。输出时间戳始终表示为Unix时间戳，以秒为单位。</p>
+<p>可以以<code>[]</code>结尾的查询参数的名称。</p>
+<p><code>&lt;series_selector&gt;</code>占位符指的是Prometheus时间序列选择器，如<code>http_requests_total</code>或<code>http_requests_total{method =~&quot;(GET|POST)&quot;}</code>，需要进行URL编码。</p>
+<p><code>&lt;duration&gt;</code>占位符指的是<code>[0-9] + [smhdwy]</code>形式的Prometheus持续时间字符串。例如，<code>5m</code>指的是5分钟的持续时间。</p>
+<p><code>&lt;bool&gt;</code>占位符引用布尔值（字符串<code>true</code>和<code>false</code>）。</p>
+<h2 id="表达式查询"><a href="#表达式查询" class="headerlink" title="表达式查询"></a>表达式查询</h2><p>可以在单个时刻或在一段时间内评估查询语言表达。 以下部分描述了每种表达式查询的API端点(endpoint)。</p>
+<h3 id="即时查询"><a href="#即时查询" class="headerlink" title="即时查询"></a>即时查询</h3><p>以下端点在单个时间点评估即时查询：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">GET /api/v1/query</span><br></pre></td></tr></table></figure></p>
+<p>URL查询参数：</p>
+<ul>
+<li><code>query=&lt;string&gt;</code>：Prometheus表达式查询字符串。</li>
+<li><code>time=&lt;rfc3339 | unix_timestamp&gt;</code>：评估时间戳,可选。</li>
+<li><code>timeout = &lt;duration&gt;</code>：评估超时,可选。默认为<code>-query.timeout</code>标志的值并受其限制。</li>
+</ul>
+<p>如果省略<code>time</code>参数，则使用当前服务器时间。</p>
+<p>查询结果的<code>data</code>部分具有以下格式：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  &quot;resultType&quot;: &quot;matrix&quot; | &quot;vector&quot; | &quot;scalar&quot; | &quot;string&quot;,</span><br><span class="line">  &quot;result&quot;: &lt;value&gt;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p><code>&lt;value&gt;</code>是指查询结果数据，具有不同的格式，具体取决于<code>resultType</code>。 请参阅<a href="https://prometheus.io/docs/prometheus/latest/querying/api/#expression-query-result-formats" target="_blank" rel="noopener">表达式查询结果格式</a>。</p>
+<p>以下示例在评估表达式<code>up</code>在<code>2015-07-01T20：10：51.781Z</code>:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">$ curl &apos;http://localhost:9090/api/v1/query?query=up&amp;time=2015-07-01T20:10:51.781Z&apos;</span><br><span class="line">&#123;</span><br><span class="line">   &quot;status&quot; : &quot;success&quot;,</span><br><span class="line">   &quot;data&quot; : &#123;</span><br><span class="line">      &quot;resultType&quot; : &quot;vector&quot;,</span><br><span class="line">      &quot;result&quot; : [</span><br><span class="line">         &#123;</span><br><span class="line">            &quot;metric&quot; : &#123;</span><br><span class="line">               &quot;__name__&quot; : &quot;up&quot;,</span><br><span class="line">               &quot;job&quot; : &quot;prometheus&quot;,</span><br><span class="line">               &quot;instance&quot; : &quot;localhost:9090&quot;</span><br><span class="line">            &#125;,</span><br><span class="line">            &quot;value&quot;: [ 1435781451.781, &quot;1&quot; ]</span><br><span class="line">         &#125;,</span><br><span class="line">         &#123;</span><br><span class="line">            &quot;metric&quot; : &#123;</span><br><span class="line">               &quot;__name__&quot; : &quot;up&quot;,</span><br><span class="line">               &quot;job&quot; : &quot;node&quot;,</span><br><span class="line">               &quot;instance&quot; : &quot;localhost:9100&quot;</span><br><span class="line">            &#125;,</span><br><span class="line">            &quot;value&quot; : [ 1435781451.781, &quot;0&quot; ]</span><br><span class="line">         &#125;</span><br><span class="line">      ]</span><br><span class="line">   &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="区间查询"><a href="#区间查询" class="headerlink" title="区间查询"></a>区间查询</h3><p>以下端点在一段时间内评估表达式查询：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">GET /api/v1/query_range</span><br></pre></td></tr></table></figure></p>
+<p>URL查询参数：</p>
+<ul>
+<li><code>query=&lt;string&gt;</code>:Prometheus表达式查询字符串。</li>
+<li><code>start=&lt;rfc3339|unix_timestamp&gt;</code>:开始时间戳。</li>
+<li><code>end=&lt;rfc3339|unix_timestamp&gt;</code>:结束时间戳。</li>
+<li><code>step=&lt;duration|float&gt;</code>:以持续时间格式查询分辨率步长或浮点秒数。</li>
+<li><code>timeout=&lt;duration&gt;</code>：评估超时,可选。默认为<code>-query.timeout</code>标志的值并受其限制。</li>
+</ul>
+<p>查询结果的<code>data</code>部分具有以下格式:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  &quot;resultType&quot;: &quot;matrix&quot;,</span><br><span class="line">  &quot;result&quot;: &lt;value&gt;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>有关<code>&lt;value&gt;</code>占位符的格式，请参阅<a href="https://prometheus.io/docs/prometheus/latest/querying/api/#range-vectors" target="_blank" rel="noopener">范围向量结果格式</a>。</p>
+<p>以下示例在30秒范围内评估表达式，查询分辨率为15秒。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line">$ curl &apos;http://localhost:9090/api/v1/query_range?query=up&amp;start=2015-07-01T20:10:30.781Z&amp;end=2015-07-01T20:11:00.781Z&amp;step=15s&apos;</span><br><span class="line">&#123;</span><br><span class="line">   &quot;status&quot; : &quot;success&quot;,</span><br><span class="line">   &quot;data&quot; : &#123;</span><br><span class="line">      &quot;resultType&quot; : &quot;matrix&quot;,</span><br><span class="line">      &quot;result&quot; : [</span><br><span class="line">         &#123;</span><br><span class="line">            &quot;metric&quot; : &#123;</span><br><span class="line">               &quot;__name__&quot; : &quot;up&quot;,</span><br><span class="line">               &quot;job&quot; : &quot;prometheus&quot;,</span><br><span class="line">               &quot;instance&quot; : &quot;localhost:9090&quot;</span><br><span class="line">            &#125;,</span><br><span class="line">            &quot;values&quot; : [</span><br><span class="line">               [ 1435781430.781, &quot;1&quot; ],</span><br><span class="line">               [ 1435781445.781, &quot;1&quot; ],</span><br><span class="line">               [ 1435781460.781, &quot;1&quot; ]</span><br><span class="line">            ]</span><br><span class="line">         &#125;,</span><br><span class="line">         &#123;</span><br><span class="line">            &quot;metric&quot; : &#123;</span><br><span class="line">               &quot;__name__&quot; : &quot;up&quot;,</span><br><span class="line">               &quot;job&quot; : &quot;node&quot;,</span><br><span class="line">               &quot;instance&quot; : &quot;localhost:9091&quot;</span><br><span class="line">            &#125;,</span><br><span class="line">            &quot;values&quot; : [</span><br><span class="line">               [ 1435781430.781, &quot;0&quot; ],</span><br><span class="line">               [ 1435781445.781, &quot;0&quot; ],</span><br><span class="line">               [ 1435781460.781, &quot;1&quot; ]</span><br><span class="line">            ]</span><br><span class="line">         &#125;</span><br><span class="line">      ]</span><br><span class="line">   &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h2 id="查询元数据"><a href="#查询元数据" class="headerlink" title="查询元数据"></a>查询元数据</h2><h3 id="按标签匹配器查找系列"><a href="#按标签匹配器查找系列" class="headerlink" title="按标签匹配器查找系列"></a>按标签匹配器查找系列</h3><p>以下端点返回与特定标签集匹配的时间系列列表。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">GET /api/v1/series</span><br></pre></td></tr></table></figure></p>
+<p>URL查询参数：</p>
+<ul>
+<li><code>match[]=&lt;series_selector&gt;</code>:重复的系列选择器参数，用于选择要返回的序列。 必须至少提供一个<code>match[]</code>参数。</li>
+<li><code>start=&lt;rfc3339|unix_timestamp&gt;</code>：开始时间戳。</li>
+<li><code>end=&lt;rfc3339|unix_timestamp&gt;</code>：结束时间戳。</li>
+</ul>
+<p>查询结果的<code>data</code>部分包含一个对象列表，这些对象包含标识每个序列的标签名称/值对。</p>
+<p>以下示例返回与选择器<code>up</code>或<code>process_start_time_seconds{job =&quot;prometheus&quot;}</code>匹配的所有系列：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">$ curl -g &apos;http://localhost:9090/api/v1/series?match[]=up&amp;match[]=process_start_time_seconds&#123;job=&quot;prometheus&quot;&#125;&apos;</span><br><span class="line">&#123;</span><br><span class="line">   &quot;status&quot; : &quot;success&quot;,</span><br><span class="line">   &quot;data&quot; : [</span><br><span class="line">      &#123;</span><br><span class="line">         &quot;__name__&quot; : &quot;up&quot;,</span><br><span class="line">         &quot;job&quot; : &quot;prometheus&quot;,</span><br><span class="line">         &quot;instance&quot; : &quot;localhost:9090&quot;</span><br><span class="line">      &#125;,</span><br><span class="line">      &#123;</span><br><span class="line">         &quot;__name__&quot; : &quot;up&quot;,</span><br><span class="line">         &quot;job&quot; : &quot;node&quot;,</span><br><span class="line">         &quot;instance&quot; : &quot;localhost:9091&quot;</span><br><span class="line">      &#125;,</span><br><span class="line">      &#123;</span><br><span class="line">         &quot;__name__&quot; : &quot;process_start_time_seconds&quot;,</span><br><span class="line">         &quot;job&quot; : &quot;prometheus&quot;,</span><br><span class="line">         &quot;instance&quot; : &quot;localhost:9090&quot;</span><br><span class="line">      &#125;</span><br><span class="line">   ]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="获取标签名称"><a href="#获取标签名称" class="headerlink" title="获取标签名称"></a>获取标签名称</h3><p>以下端点返回标签名称列表：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">GET /api/v1/labels</span><br><span class="line">POST /api/v1/labels</span><br></pre></td></tr></table></figure></p>
+<p>JSON响应的<code>data</code>部分是字符串标签名称的列表。</p>
+<p>这是一个例子:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">$ curl &apos;localhost:9090/api/v1/labels&apos;</span><br><span class="line">&#123;</span><br><span class="line">    &quot;status&quot;: &quot;success&quot;,</span><br><span class="line">    &quot;data&quot;: [</span><br><span class="line">        &quot;__name__&quot;,</span><br><span class="line">        &quot;call&quot;,</span><br><span class="line">        &quot;code&quot;,</span><br><span class="line">        &quot;config&quot;,</span><br><span class="line">        &quot;dialer_name&quot;,</span><br><span class="line">        &quot;endpoint&quot;,</span><br><span class="line">        &quot;event&quot;,</span><br><span class="line">        &quot;goversion&quot;,</span><br><span class="line">        &quot;handler&quot;,</span><br><span class="line">        &quot;instance&quot;,</span><br><span class="line">        &quot;interval&quot;,</span><br><span class="line">        &quot;job&quot;,</span><br><span class="line">        &quot;le&quot;,</span><br><span class="line">        &quot;listener_name&quot;,</span><br><span class="line">        &quot;name&quot;,</span><br><span class="line">        &quot;quantile&quot;,</span><br><span class="line">        &quot;reason&quot;,</span><br><span class="line">        &quot;role&quot;,</span><br><span class="line">        &quot;scrape_job&quot;,</span><br><span class="line">        &quot;slice&quot;,</span><br><span class="line">        &quot;version&quot;</span><br><span class="line">    ]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="查询标签值"><a href="#查询标签值" class="headerlink" title="查询标签值"></a>查询标签值</h3><p>以下端点返回提供的标签名称的标签值列表：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">GET /api/v1/label/&lt;label_name&gt;/values</span><br></pre></td></tr></table></figure></p>
+<p>JSON响应的<code>data</code>部分是字符串标签值的列表。</p>
+<p>此示例查询<code>job</code>标签的所有标签值：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">$ curl http://localhost:9090/api/v1/label/job/values</span><br><span class="line">&#123;</span><br><span class="line">   &quot;status&quot; : &quot;success&quot;,</span><br><span class="line">   &quot;data&quot; : [</span><br><span class="line">      &quot;node&quot;,</span><br><span class="line">      &quot;prometheus&quot;</span><br><span class="line">   ]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h2 id="表达式查询结果格式"><a href="#表达式查询结果格式" class="headerlink" title="表达式查询结果格式"></a>表达式查询结果格式</h2><p>表达式查询可能会在数据部分的<code>result</code>属性中返回以下响应值。 <code>&lt;sample_value&gt;</code>占位符是数字样本值。JSON不支持特殊的浮点值，例如<code>NaN</code>，<code>Inf</code>和<code>-Inf</code>，因此样本值将作为带引号的JSON字符串而不是原始数字传输。</p>
+<h3 id="范围向量"><a href="#范围向量" class="headerlink" title="范围向量"></a>范围向量</h3><p>范围向量作为结果类型<code>matrix</code>返回。相应的<code>result</code>属性具有以下格式：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">[</span><br><span class="line">  &#123;</span><br><span class="line">    &quot;metric&quot;: &#123; &quot;&lt;label_name&gt;&quot;: &quot;&lt;label_value&gt;&quot;, ... &#125;,</span><br><span class="line">    &quot;values&quot;: [ [ &lt;unix_time&gt;, &quot;&lt;sample_value&gt;&quot; ], ... ]</span><br><span class="line">  &#125;,</span><br><span class="line">  ...</span><br><span class="line">]</span><br></pre></td></tr></table></figure></p>
+<h3 id="即时向量"><a href="#即时向量" class="headerlink" title="即时向量"></a>即时向量</h3><p>即时向量作为结果类型<code>vector</code>返回。相应的<code>result</code>属性具有以下格式：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">[</span><br><span class="line">  &#123;</span><br><span class="line">    &quot;metric&quot;: &#123; &quot;&lt;label_name&gt;&quot;: &quot;&lt;label_value&gt;&quot;, ... &#125;,</span><br><span class="line">    &quot;value&quot;: [ &lt;unix_time&gt;, &quot;&lt;sample_value&gt;&quot; ]</span><br><span class="line">  &#125;,</span><br><span class="line">  ...</span><br><span class="line">]</span><br></pre></td></tr></table></figure></p>
+<h3 id="标量"><a href="#标量" class="headerlink" title="标量"></a>标量</h3><p>标量结果作为结果类型<code>scalar</code>返回。相应的<code>result</code>属性具有以下格式：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[ &lt;unix_time&gt;, &quot;&lt;scalar_value&gt;&quot; ]</span><br></pre></td></tr></table></figure></p>
+<h3 id="字符串"><a href="#字符串" class="headerlink" title="字符串"></a>字符串</h3><p>字符串结果作为结果类型<code>string</code>返回。相应的<code>result</code>属性具有以下格式：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">[ &lt;unix_time&gt;, &quot;&lt;string_value&gt;&quot; ]</span><br></pre></td></tr></table></figure></p>
+<h2 id="目标机器"><a href="#目标机器" class="headerlink" title="目标机器"></a>目标机器</h2><p>以下端点返回Prometheus目标发现的当前状态概述：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">GET /api/v1/targets</span><br></pre></td></tr></table></figure></p>
+<p>活动目标和删除目标都是响应的一部分。<code>labels</code>表示重新标记发生后的标签集。<code>discoveredLabels</code>表示在发生重新标记之前在服务发现期间检索到的未修改标签。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line">$ curl http://localhost:9090/api/v1/targets</span><br><span class="line">&#123;</span><br><span class="line">  &quot;status&quot;: &quot;success&quot;,</span><br><span class="line">  &quot;data&quot;: &#123;</span><br><span class="line">    &quot;activeTargets&quot;: [</span><br><span class="line">      &#123;</span><br><span class="line">        &quot;discoveredLabels&quot;: &#123;</span><br><span class="line">          &quot;__address__&quot;: &quot;127.0.0.1:9090&quot;,</span><br><span class="line">          &quot;__metrics_path__&quot;: &quot;/metrics&quot;,</span><br><span class="line">          &quot;__scheme__&quot;: &quot;http&quot;,</span><br><span class="line">          &quot;job&quot;: &quot;prometheus&quot;</span><br><span class="line">        &#125;,</span><br><span class="line">        &quot;labels&quot;: &#123;</span><br><span class="line">          &quot;instance&quot;: &quot;127.0.0.1:9090&quot;,</span><br><span class="line">          &quot;job&quot;: &quot;prometheus&quot;</span><br><span class="line">        &#125;,</span><br><span class="line">        &quot;scrapeUrl&quot;: &quot;http://127.0.0.1:9090/metrics&quot;,</span><br><span class="line">        &quot;lastError&quot;: &quot;&quot;,</span><br><span class="line">        &quot;lastScrape&quot;: &quot;2017-01-17T15:07:44.723715405+01:00&quot;,</span><br><span class="line">        &quot;health&quot;: &quot;up&quot;</span><br><span class="line">      &#125;</span><br><span class="line">    ],</span><br><span class="line">    &quot;droppedTargets&quot;: [</span><br><span class="line">      &#123;</span><br><span class="line">        &quot;discoveredLabels&quot;: &#123;</span><br><span class="line">          &quot;__address__&quot;: &quot;127.0.0.1:9100&quot;,</span><br><span class="line">          &quot;__metrics_path__&quot;: &quot;/metrics&quot;,</span><br><span class="line">          &quot;__scheme__&quot;: &quot;http&quot;,</span><br><span class="line">          &quot;job&quot;: &quot;node&quot;</span><br><span class="line">        &#125;,</span><br><span class="line">      &#125;</span><br><span class="line">    ]</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h2 id="规则"><a href="#规则" class="headerlink" title="规则"></a>规则</h2><p><code>/rules</code>API端点返回当前加载的警报和记录规则列表。此外，它还返回由每个警报规则的Prometheus实例触发的当前活动警报。</p>
+<p><strong>由于<code>/rules</code>端点相当新，它没有与总体API v1相同的稳定性保证。</strong><br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">GET /api/v1/rules</span><br></pre></td></tr></table></figure></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br></pre></td><td class="code"><pre><span class="line">$ curl http://localhost:9090/api/v1/rules</span><br><span class="line"></span><br><span class="line">&#123;</span><br><span class="line">    &quot;data&quot;: &#123;</span><br><span class="line">        &quot;groups&quot;: [</span><br><span class="line">            &#123;</span><br><span class="line">                &quot;rules&quot;: [</span><br><span class="line">                    &#123;</span><br><span class="line">                        &quot;alerts&quot;: [</span><br><span class="line">                            &#123;</span><br><span class="line">                                &quot;activeAt&quot;: &quot;2018-07-04T20:27:12.60602144+02:00&quot;,</span><br><span class="line">                                &quot;annotations&quot;: &#123;</span><br><span class="line">                                    &quot;summary&quot;: &quot;High request latency&quot;</span><br><span class="line">                                &#125;,</span><br><span class="line">                                &quot;labels&quot;: &#123;</span><br><span class="line">                                    &quot;alertname&quot;: &quot;HighRequestLatency&quot;,</span><br><span class="line">                                    &quot;severity&quot;: &quot;page&quot;</span><br><span class="line">                                &#125;,</span><br><span class="line">                                &quot;state&quot;: &quot;firing&quot;,</span><br><span class="line">                                &quot;value&quot;: 1</span><br><span class="line">                            &#125;</span><br><span class="line">                        ],</span><br><span class="line">                        &quot;annotations&quot;: &#123;</span><br><span class="line">                            &quot;summary&quot;: &quot;High request latency&quot;</span><br><span class="line">                        &#125;,</span><br><span class="line">                        &quot;duration&quot;: 600,</span><br><span class="line">                        &quot;health&quot;: &quot;ok&quot;,</span><br><span class="line">                        &quot;labels&quot;: &#123;</span><br><span class="line">                            &quot;severity&quot;: &quot;page&quot;</span><br><span class="line">                        &#125;,</span><br><span class="line">                        &quot;name&quot;: &quot;HighRequestLatency&quot;,</span><br><span class="line">                        &quot;query&quot;: &quot;job:request_latency_seconds:mean5m&#123;job=\&quot;myjob\&quot;&#125; &gt; 0.5&quot;,</span><br><span class="line">                        &quot;type&quot;: &quot;alerting&quot;</span><br><span class="line">                    &#125;,</span><br><span class="line">                    &#123;</span><br><span class="line">                        &quot;health&quot;: &quot;ok&quot;,</span><br><span class="line">                        &quot;name&quot;: &quot;job:http_inprogress_requests:sum&quot;,</span><br><span class="line">                        &quot;query&quot;: &quot;sum(http_inprogress_requests) by (job)&quot;,</span><br><span class="line">                        &quot;type&quot;: &quot;recording&quot;</span><br><span class="line">                    &#125;</span><br><span class="line">                ],</span><br><span class="line">                &quot;file&quot;: &quot;/rules.yaml&quot;,</span><br><span class="line">                &quot;interval&quot;: 60,</span><br><span class="line">                &quot;name&quot;: &quot;example&quot;</span><br><span class="line">            &#125;</span><br><span class="line">        ]</span><br><span class="line">    &#125;,</span><br><span class="line">    &quot;status&quot;: &quot;success&quot;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="告警"><a href="#告警" class="headerlink" title="告警"></a>告警</h2><p><code>/alerts</code>端点返回所有活动警报的列表。</p>
+<p><strong>由于<code>/alerts</code>端点相当新，它没有与总体API v1相同的稳定性保证。</strong></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">GET /api/v1/alerts</span><br></pre></td></tr></table></figure>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">$ curl http://localhost:9090/api/v1/alerts</span><br><span class="line"></span><br><span class="line">&#123;</span><br><span class="line">    &quot;data&quot;: &#123;</span><br><span class="line">        &quot;alerts&quot;: [</span><br><span class="line">            &#123;</span><br><span class="line">                &quot;activeAt&quot;: &quot;2018-07-04T20:27:12.60602144+02:00&quot;,</span><br><span class="line">                &quot;annotations&quot;: &#123;&#125;,</span><br><span class="line">                &quot;labels&quot;: &#123;</span><br><span class="line">                    &quot;alertname&quot;: &quot;my-alert&quot;</span><br><span class="line">                &#125;,</span><br><span class="line">                &quot;state&quot;: &quot;firing&quot;,</span><br><span class="line">                &quot;value&quot;: 1</span><br><span class="line">            &#125;</span><br><span class="line">        ]</span><br><span class="line">    &#125;,</span><br><span class="line">    &quot;status&quot;: &quot;success&quot;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="查询目标机器元数据"><a href="#查询目标机器元数据" class="headerlink" title="查询目标机器元数据"></a>查询目标机器元数据</h2><p>以下端点返回有关目标正在刮取的指标标准的元数据。<strong>本接口是实验性的</strong>，将来可能会发生变化。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">GET /api/v1/targets/metadata</span><br></pre></td></tr></table></figure></p>
+<p>URL查询参数：</p>
+<ul>
+<li><code>match_target=&lt;label_selectors&gt;</code>:通过标签集匹配目标的标签选择器。如果留空则选择所有目标。</li>
+<li><code>metric=&lt;string&gt;</code>：用于检索元数据的指标名称。如果留空，则检索所有指标标准元数据。</li>
+<li><code>limit=&lt;number&gt;</code>:要匹配的最大目标数。</li>
+</ul>
+<p>查询结果的<code>data</code>部分包含一个包含指标元数据和目标标签集的对象列表。</p>
+<p>以下示例从前两个目标机器返回<code>go_goroutines</code>指标的所有元数据条目，标签为<code>job=&quot;prometheus&quot;</code>。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">curl -G http://localhost:9091/api/v1/targets/metadata \</span><br><span class="line">    --data-urlencode &apos;metric=go_goroutines&apos; \</span><br><span class="line">    --data-urlencode &apos;match_target=&#123;job=&quot;prometheus&quot;&#125;&apos; \</span><br><span class="line">    --data-urlencode &apos;limit=2&apos;</span><br><span class="line">&#123;</span><br><span class="line">  &quot;status&quot;: &quot;success&quot;,</span><br><span class="line">  &quot;data&quot;: [</span><br><span class="line">    &#123;</span><br><span class="line">      &quot;target&quot;: &#123;</span><br><span class="line">        &quot;instance&quot;: &quot;127.0.0.1:9090&quot;,</span><br><span class="line">        &quot;job&quot;: &quot;prometheus&quot;</span><br><span class="line">      &#125;,</span><br><span class="line">      &quot;type&quot;: &quot;gauge&quot;,</span><br><span class="line">      &quot;help&quot;: &quot;Number of goroutines that currently exist.&quot;,</span><br><span class="line">      &quot;unit&quot;: &quot;&quot;</span><br><span class="line">    &#125;,</span><br><span class="line">    &#123;</span><br><span class="line">      &quot;target&quot;: &#123;</span><br><span class="line">        &quot;instance&quot;: &quot;127.0.0.1:9091&quot;,</span><br><span class="line">        &quot;job&quot;: &quot;prometheus&quot;</span><br><span class="line">      &#125;,</span><br><span class="line">      &quot;type&quot;: &quot;gauge&quot;,</span><br><span class="line">      &quot;help&quot;: &quot;Number of goroutines that currently exist.&quot;,</span><br><span class="line">      &quot;unit&quot;: &quot;&quot;</span><br><span class="line">    &#125;</span><br><span class="line">  ]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>以下示例返回标签<code>instance=&quot;127.0.0.1:9090&quot;</code>的所有目标的所有指标标准的元数据。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">curl -G http://localhost:9091/api/v1/targets/metadata \</span><br><span class="line">    --data-urlencode &apos;match_target=&#123;instance=&quot;127.0.0.1:9090&quot;&#125;&apos;</span><br><span class="line">&#123;</span><br><span class="line">  &quot;status&quot;: &quot;success&quot;,</span><br><span class="line">  &quot;data&quot;: [</span><br><span class="line">    // ...</span><br><span class="line">    &#123;</span><br><span class="line">      &quot;target&quot;: &#123;</span><br><span class="line">        &quot;instance&quot;: &quot;127.0.0.1:9090&quot;,</span><br><span class="line">        &quot;job&quot;: &quot;prometheus&quot;</span><br><span class="line">      &#125;,</span><br><span class="line">      &quot;metric&quot;: &quot;prometheus_treecache_zookeeper_failures_total&quot;,</span><br><span class="line">      &quot;type&quot;: &quot;counter&quot;,</span><br><span class="line">      &quot;help&quot;: &quot;The total number of ZooKeeper failures.&quot;,</span><br><span class="line">      &quot;unit&quot;: &quot;&quot;</span><br><span class="line">    &#125;,</span><br><span class="line">    &#123;</span><br><span class="line">      &quot;target&quot;: &#123;</span><br><span class="line">        &quot;instance&quot;: &quot;127.0.0.1:9090&quot;,</span><br><span class="line">        &quot;job&quot;: &quot;prometheus&quot;</span><br><span class="line">      &#125;,</span><br><span class="line">      &quot;metric&quot;: &quot;prometheus_tsdb_reloads_total&quot;,</span><br><span class="line">      &quot;type&quot;: &quot;counter&quot;,</span><br><span class="line">      &quot;help&quot;: &quot;Number of times the database reloaded block data from disk.&quot;,</span><br><span class="line">      &quot;unit&quot;: &quot;&quot;</span><br><span class="line">    &#125;,</span><br><span class="line">    // ...</span><br><span class="line">  ]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h2 id="Alertmanagers"><a href="#Alertmanagers" class="headerlink" title="Alertmanagers"></a>Alertmanagers</h2><p>以下端点返回Prometheus alertmanager发现的当前状态概述：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">GET /api/v1/alertmanagers</span><br></pre></td></tr></table></figure></p>
+<p>活动和丢弃的Alertmanagers都是响应的一部分。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">$ curl http://localhost:9090/api/v1/alertmanagers</span><br><span class="line">&#123;</span><br><span class="line">  &quot;status&quot;: &quot;success&quot;,</span><br><span class="line">  &quot;data&quot;: &#123;</span><br><span class="line">    &quot;activeAlertmanagers&quot;: [</span><br><span class="line">      &#123;</span><br><span class="line">        &quot;url&quot;: &quot;http://127.0.0.1:9090/api/v1/alerts&quot;</span><br><span class="line">      &#125;</span><br><span class="line">    ],</span><br><span class="line">    &quot;droppedAlertmanagers&quot;: [</span><br><span class="line">      &#123;</span><br><span class="line">        &quot;url&quot;: &quot;http://127.0.0.1:9093/api/v1/alerts&quot;</span><br><span class="line">      &#125;</span><br><span class="line">    ]</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h2 id="状态"><a href="#状态" class="headerlink" title="状态"></a>状态</h2><p>以下状态端点显示当前的Prometheus配置。</p>
+<h3 id="config"><a href="#config" class="headerlink" title="config"></a>config</h3><p>以下端点返回当前加载的配置文件：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">GET /api/v1/status/config</span><br></pre></td></tr></table></figure></p>
+<p>配置作为转储的YAML文件返回。由于YAML库的限制，不包括YAML注释。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">$ curl http://localhost:9090/api/v1/status/config</span><br><span class="line">&#123;</span><br><span class="line">  &quot;status&quot;: &quot;success&quot;,</span><br><span class="line">  &quot;data&quot;: &#123;</span><br><span class="line">    &quot;yaml&quot;: &quot;&lt;content of the loaded config file in YAML&gt;&quot;,</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h3 id="flags"><a href="#flags" class="headerlink" title="flags"></a>flags</h3><p>以下端点返回Prometheus配置的标志值：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">GET /api/v1/status/flags</span><br></pre></td></tr></table></figure></p>
+<p>所有值都以“字符串”的形式出现。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">$ curl http://localhost:9090/api/v1/status/flags</span><br><span class="line">&#123;</span><br><span class="line">  &quot;status&quot;: &quot;success&quot;,</span><br><span class="line">  &quot;data&quot;: &#123;</span><br><span class="line">    &quot;alertmanager.notification-queue-capacity&quot;: &quot;10000&quot;,</span><br><span class="line">    &quot;alertmanager.timeout&quot;: &quot;10s&quot;,</span><br><span class="line">    &quot;log.level&quot;: &quot;info&quot;,</span><br><span class="line">    &quot;query.lookback-delta&quot;: &quot;5m&quot;,</span><br><span class="line">    &quot;query.max-concurrency&quot;: &quot;20&quot;,</span><br><span class="line">    ...</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p><strong>添加于v2.2</strong></p>
+<h2 id="TSDB管理API"><a href="#TSDB管理API" class="headerlink" title="TSDB管理API"></a>TSDB管理API</h2><p>这些是为高级用户公开数据库功能的API。除非设置了<code>--web.enable-admin-api</code>，否则不会启用这些API。</p>
+<p>我们还公开了一个gRPC API，其定义可以在<a href="https://github.com/prometheus/prometheus/blob/master/prompb/rpc.proto" target="_blank" rel="noopener">这里</a>找到。<strong>这是实验性的，将来可能会发生变化。</strong></p>
+<h3 id="快照"><a href="#快照" class="headerlink" title="快照"></a>快照</h3><p>快照会将所有当前数据的快照创建到TSDB数据目录下的<code>snapshots/&lt;datetime&gt;-&lt;rand&gt;</code>中，并将该目录作为响应返回。 它可以选择跳过仅存在于头块中但尚未压缩到磁盘的快照数据。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">POST /api/v1/admin/tsdb/snapshot?skip_head=&lt;bool&gt;</span><br></pre></td></tr></table></figure></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">$ curl -XPOST http://localhost:9090/api/v1/admin/tsdb/snapshot</span><br><span class="line">&#123;</span><br><span class="line">  &quot;status&quot;: &quot;success&quot;,</span><br><span class="line">  &quot;data&quot;: &#123;</span><br><span class="line">    &quot;name&quot;: &quot;20171210T211224Z-2be650b6d019eb54&quot;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>快照现在位于<code>&lt;data-dir&gt;/snapshots/20171210T211224Z-2be650b6d019eb54</code><br><strong>添加与v2.1</strong></p>
+<h3 id="删除序列"><a href="#删除序列" class="headerlink" title="删除序列"></a>删除序列</h3><p>DeleteSeries删除时间范围内所选序列的数据。实际数据仍然存在于磁盘上，并在将来的压缩中清除，或者可以通过点击Clean Tombstones端点来明确清理。</p>
+<p>如果成功，则返回<code>204</code>。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">POST /api/v1/admin/tsdb/delete_series</span><br></pre></td></tr></table></figure>
+<p>URL查询参数：</p>
+<ul>
+<li><code>match[]=&lt;series_selector&gt;</code>:选择要删除的系列的重复标签匹配器参数。必须至少提供一个<code>match[]</code>参数。</li>
+<li><code>start=&lt;rfc3339|unix_timestamp&gt;</code>:开始时间戳,可选，默认为最短可能时间。</li>
+<li><code>end=&lt;rfc3339|unix_timestamp&gt;</code>:结束时间戳,可选，默认为最长可能时间。</li>
+</ul>
+<p>不提及开始和结束时间将清除数据库中匹配系列的所有数据。</p>
+<p>例子:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ curl -X POST \</span><br><span class="line">  -g &apos;http://localhost:9090/api/v1/admin/tsdb/delete_series?match[]=up&amp;match[]=process_start_time_seconds&#123;job=&quot;prometheus&quot;&#125;&apos;</span><br></pre></td></tr></table></figure></p>
+<p><strong>添加于v2.1</strong></p>
+<h3 id="清洁墓碑"><a href="#清洁墓碑" class="headerlink" title="清洁墓碑"></a>清洁墓碑</h3><p>CleanTombstones从磁盘中删除已删除的数据并清理现有的逻辑删除。这可以在删除系列后使用以释放空间。</p>
+<p>如果成功，则返回<code>204</code>。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">POST /api/v1/admin/tsdb/clean_tombstones</span><br></pre></td></tr></table></figure></p>
+<p>这不需要参数或正文。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ curl -XPOST http://localhost:9090/api/v1/admin/tsdb/clean_tombstones</span><br></pre></td></tr></table></figure>
+<p><strong>添加于v2.1</strong></p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/prometheus/" rel="tag"># prometheus</a>
+          
+            <a href="/tags/监控/" rel="tag"># 监控</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/03/23/prometheus/query/prometheus-quering-examples/" rel="next" title="prometheus查询-举例">
+                <i class="fa fa-chevron-left"></i> prometheus查询-举例
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2019/03/26/thanos/thanos-design/" rel="prev" title="thanos设计">
+                thanos设计 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  
+    <div class="comments" id="comments">
+      
+        <div id="gitment-container"></div>
+      
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Arthur</p>
+              <p class="site-description motion-element" itemprop="description">Personal Blog, Notes and Everything should be kept</p>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">61</span>
+                    <span class="site-state-item-name">posts</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  <a href="/categories/index.html">
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">6</span>
+                    <span class="site-state-item-name">categories</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  <a href="/tags/index.html">
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">34</span>
+                    <span class="site-state-item-name">tags</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+            <div class="feed-link motion-element">
+              <a href="/atom.xml" rel="alternate">
+                <i class="fa fa-rss"></i>
+                RSS
+              </a>
+            </div>
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#格式概述"><span class="nav-number">1.</span> <span class="nav-text">格式概述</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#表达式查询"><span class="nav-number">2.</span> <span class="nav-text">表达式查询</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#即时查询"><span class="nav-number">2.1.</span> <span class="nav-text">即时查询</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#区间查询"><span class="nav-number">2.2.</span> <span class="nav-text">区间查询</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#查询元数据"><span class="nav-number">3.</span> <span class="nav-text">查询元数据</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#按标签匹配器查找系列"><span class="nav-number">3.1.</span> <span class="nav-text">按标签匹配器查找系列</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#获取标签名称"><span class="nav-number">3.2.</span> <span class="nav-text">获取标签名称</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#查询标签值"><span class="nav-number">3.3.</span> <span class="nav-text">查询标签值</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#表达式查询结果格式"><span class="nav-number">4.</span> <span class="nav-text">表达式查询结果格式</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#范围向量"><span class="nav-number">4.1.</span> <span class="nav-text">范围向量</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#即时向量"><span class="nav-number">4.2.</span> <span class="nav-text">即时向量</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#标量"><span class="nav-number">4.3.</span> <span class="nav-text">标量</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#字符串"><span class="nav-number">4.4.</span> <span class="nav-text">字符串</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#目标机器"><span class="nav-number">5.</span> <span class="nav-text">目标机器</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#规则"><span class="nav-number">6.</span> <span class="nav-text">规则</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#告警"><span class="nav-number">7.</span> <span class="nav-text">告警</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#查询目标机器元数据"><span class="nav-number">8.</span> <span class="nav-text">查询目标机器元数据</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Alertmanagers"><span class="nav-number">9.</span> <span class="nav-text">Alertmanagers</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#状态"><span class="nav-number">10.</span> <span class="nav-text">状态</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#config"><span class="nav-number">10.1.</span> <span class="nav-text">config</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#flags"><span class="nav-number">10.2.</span> <span class="nav-text">flags</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#TSDB管理API"><span class="nav-number">11.</span> <span class="nav-text">TSDB管理API</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#快照"><span class="nav-number">11.1.</span> <span class="nav-text">快照</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#删除序列"><span class="nav-number">11.2.</span> <span class="nav-text">删除序列</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#清洁墓碑"><span class="nav-number">11.3.</span> <span class="nav-text">清洁墓碑</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Arthur</span>
+
+  
+
+  
+</div>
+
+
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> v3.7.1</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://theme-next.org">NexT.Pisces</a> v6.3.0</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=6.3.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=6.3.0"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=6.3.0"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=6.3.0"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=6.3.0"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=6.3.0"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=6.3.0"></script>
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+<!-- LOCAL: You can save these files to your site and update links -->
+    
+        
+        <link rel="stylesheet" href="https://aimingoo.github.io/gitmint/style/default.css">
+        <script src="https://aimingoo.github.io/gitmint/dist/gitmint.browser.js"></script>
+    
+<!-- END LOCAL -->
+
+    
+
+    
+      <script type="text/javascript">
+      function renderGitment(){
+        var gitment = new Gitmint({
+            id: window.location.pathname,
+            owner: 'ShingYang',
+            repo: 'ShingYang.github.io',
+            
+            lang: "" || navigator.language || navigator.systemLanguage || navigator.userLanguage,
+            
+            oauth: {
+            
+            
+                client_secret: '23e4590b8427cdef66c3c0038c9fb29dfd9106bc',
+            
+                client_id: '3971199b02eb0109e893'
+            }});
+        gitment.render('gitment-container');
+      }
+
+      
+      renderGitment();
+      
+      </script>
+    
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=6.3.0" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=6.3.0">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=6.3.0" color="#222">
+
+
+
+
+
+
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '6.3.0',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="在写入和读取数据时，它会执行此操作  磁盘上的持久数据 - 块 内存缓存称为Head - 批量磁盘写入并减少SSD磨损  当试图理解执行逻辑时，遵循持久化块读取和写入路径可能更容易入手。 块(Chunk) - 是字节格式的序列样本的实际持有者。压缩三角形并按120个样本分组，以实现快速解压缩。 memSeries结构是所有memChunks保存到磁盘之前的持有者。 接口: https://gith">
+<meta name="keywords" content="prometheus,监控">
+<meta property="og:type" content="article">
+<meta property="og:title" content="prometheus tsdb deeper and lower(2) - Krasi’s Notes! ">
+<meta property="og:url" content="http://blog.yapo.fun/2019/08/12/prometheus/prometheus-tsdb-deeper-and-lower-2/index.html">
+<meta property="og:site_name" content="Arthur&#39;s Blog">
+<meta property="og:description" content="在写入和读取数据时，它会执行此操作  磁盘上的持久数据 - 块 内存缓存称为Head - 批量磁盘写入并减少SSD磨损  当试图理解执行逻辑时，遵循持久化块读取和写入路径可能更容易入手。 块(Chunk) - 是字节格式的序列样本的实际持有者。压缩三角形并按120个样本分组，以实现快速解压缩。 memSeries结构是所有memChunks保存到磁盘之前的持有者。 接口: https://gith">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2019-11-11T13:26:06.037Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="prometheus tsdb deeper and lower(2) - Krasi’s Notes! ">
+<meta name="twitter:description" content="在写入和读取数据时，它会执行此操作  磁盘上的持久数据 - 块 内存缓存称为Head - 批量磁盘写入并减少SSD磨损  当试图理解执行逻辑时，遵循持久化块读取和写入路径可能更容易入手。 块(Chunk) - 是字节格式的序列样本的实际持有者。压缩三角形并按120个样本分组，以实现快速解压缩。 memSeries结构是所有memChunks保存到磁盘之前的持有者。 接口: https://gith">
+
+
+
+  <link rel="alternate" href="/atom.xml" title="Arthur's Blog" type="application/atom+xml" />
+
+
+
+
+  <link rel="canonical" href="http://blog.yapo.fun/2019/08/12/prometheus/prometheus-tsdb-deeper-and-lower-2/"/>
+
+
+
+<script type="text/javascript" id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>prometheus tsdb deeper and lower(2) - Krasi’s Notes!  | Arthur's Blog</title>
+  
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style type="text/css">
+    .use-motion .motion-element,
+    .use-motion .brand,
+    .use-motion .menu-item,
+    .sidebar-inner,
+    .use-motion .post-block,
+    .use-motion .pagination,
+    .use-motion .comments,
+    .use-motion .post-header,
+    .use-motion .post-body,
+    .use-motion .collection-title { opacity: initial; }
+
+    .use-motion .logo,
+    .use-motion .site-title,
+    .use-motion .site-subtitle {
+      opacity: initial;
+      top: initial;
+    }
+
+    .use-motion {
+      .logo-line-before i { left: initial; }
+      .logo-line-after i { right: initial; }
+    }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Arthur's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="Toggle navigation bar">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+    <a href="/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-home"></i> <br />Home</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+    <a href="/tags/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />Tags</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+    <a href="/categories/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-th"></i> <br />Categories</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+    <a href="/archives/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />Archives</a>
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://blog.yapo.fun/2019/08/12/prometheus/prometheus-tsdb-deeper-and-lower-2/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Arthur">
+      <meta itemprop="description" content="Personal Blog, Notes and Everything should be kept">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Arthur's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">prometheus tsdb deeper and lower(2) - Krasi’s Notes! 
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+
+              
+                
+              
+
+              <time title="Created: 2019-08-12 11:31:39" itemprop="dateCreated datePublished" datetime="2019-08-12T11:31:39+08:00">2019-08-12</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">Edited on</span>
+                
+                <time title="Modified: 2019-11-11 21:26:06" itemprop="dateModified" datetime="2019-11-11T21:26:06+08:00">2019-11-11</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/监控/" itemprop="url" rel="index"><span itemprop="name">监控</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2019/08/12/prometheus/prometheus-tsdb-deeper-and-lower-2/#comments" itemprop="discussionUrl">
+                  <span class="post-meta-item-text">Comments: </span> <span class="post-comments-count gitment-comments-count" data-xid="/2019/08/12/prometheus/prometheus-tsdb-deeper-and-lower-2/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>在写入和读取数据时，它会执行此操作</p>
+<ul>
+<li>磁盘上的持久数据 - 块</li>
+<li>内存缓存称为Head - 批量磁盘写入并减少SSD磨损</li>
+</ul>
+<p>当试图理解执行逻辑时，遵循持久化块读取和写入路径可能更容易入手。</p>
+<p><strong>块(Chunk)</strong> - 是字节格式的序列样本的实际持有者。压缩三角形并按<a href="https://github.com/prometheus/tsdb/blob/def6e5a57439cffe7b44a619c05bce4ac513a63e/head.go#L1207" target="_blank" rel="noopener">120</a>个样本分组，以实现快速解压缩。</p>
+<p><code>memSeries</code>结构是所有<code>memChunks</code>保存到磁盘之前的持有者。</p>
+<p>接口:</p>
+<p><a href="https://github.com/prometheus/tsdb/blob/def6e5a57439cffe7b44a619c05bce4ac513a63e/chunkenc/chunk.go#L43-L49" target="_blank" rel="noopener">https://github.com/prometheus/tsdb/blob/def6e5a57439cffe7b44a619c05bce4ac513a63e/chunkenc/chunk.go#L43-L49</a></p>
+<p>通过XORChunk结构实现:</p>
+<p><a href="https://github.com/prometheus/tsdb/blob/def6e5a57439cffe7b44a619c05bce4ac513a63e/chunkenc/xor.go#L1-L386" target="_blank" rel="noopener">https://github.com/prometheus/tsdb/blob/def6e5a57439cffe7b44a619c05bce4ac513a63e/chunkenc/xor.go#L1-L386</a> </p>
+<p><strong>Series</strong> 为labelName/labelValue对,例如:http_requests=post,http_requests=get</p>
+<p><strong>Samples</strong>为timestamp/value对,例如:t:10,v:1234     t:11,v:1200</p>
+<p><a href="https://github.com/prometheus/tsdb/blob/def6e5a57439cffe7b44a619c05bce4ac513a63e/head.go#L53-L73" target="_blank" rel="noopener"><strong>头(Head)</strong></a>-<br>首先，数据保留在内存中以避免将每个样本写入磁盘，因此这允许对大批样本进行单次写入。保存数据的结构是在<br><code>stripeSeries</code>使用<code>map[uint64]</code>由id索引。<br>每个stripeSeries都有自己的互斥锁，以减少锁争用。</p>
+<p>我们通过headAppender将序列/样品添加到Head中。这是将样本分组添加到单个事务中，只有在调用<strong>Commit()</strong>之后才能查询。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">type headAppender struct &#123;</span><br><span class="line">	head       *Head</span><br><span class="line">	mint, maxt int64</span><br><span class="line">	series  []RefSeries</span><br><span class="line">	samples []RefSample</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p><code>headAppender</code>实现了Appender接口。</p>
+<ul>
+<li><p>Add(l labels.Labels, t int64, v float64) - 使用标签哈希它检查Head中是否存在（在<code>stripeSeries</code>中）。如果缺少引用它会创建一个新的引用并使用它将新的memSeries添加到head的stripeSeries中。还将标签添加到自己的<code>[]RefSeries</code>切片（为什么????），而不是使用引用调用<code>AddFast</code>. <strong>注:新版本的代码实现是调用AddFast</strong></p>
+</li>
+<li><p>AddFast(ref uint64, t int64, v float64) -  使用ref获取指向时间序列的指针并将样本添加到其<code>[]RefSample</code>切片与引用序列的指针一起使用。通过这种方式在<code>Commit</code>所有t，v对将被添加到由保存的指针引用的相同序列。</p>
+</li>
+<li><p>Commit() - <a href="○https://github.com/prometheus/tsdb/blob/def6e5a57439cffe7b44a619c05bce4ac513a63e/head.go#L526-L531">将所有<code>headAppender</code>序列和样本写入WAL文件</a>。 <a href="○https://github.com/prometheus/tsdb/blob/def6e5a57439cffe7b44a619c05bce4ac513a63e/head.go#L535-L547">遍历所有样本并将它们附加到它们通过保存在它们自己的结构中的系列指针引用的序列中。这也使它们可用于查询</a>。</p>
+</li>
+<li><p>RollBack() - 准备一个空头的appendPool，这样在请求新的appender时它不会分配新的内存。???? 如果我们在调用Rollback后尝试使用现有的appender会发生什么？ **注:调用Rollback之后就不能重用appender了,<a href="https://github.com/prometheus/tsdb/blob/d5b3f0704379a9eaca33b711aa0097f001817fc2/db.go#L89-L90" target="_blank" rel="noopener">详见</a></p>
+</li>
+</ul>
+<p><strong>WAL</strong> - append only文件,用于在发生崩溃时恢复内存中序列,每个WAL段的Head块是256MB，它被截断为重启时写入的内容。再次分区为256MB，你写入了256MB，创建一个新段。</p>
+<p><strong>DB</strong> - 根对象用于设置:</p>
+<ul>
+<li>要使用的目录</li>
+<li>压缩器</li>
+<li>WAL文件</li>
+<li>头部</li>
+<li>读取和写入Meta文件。</li>
+</ul>
+<p><strong>Block</strong> - 持久存储在由单个目录中写入的连续时间序列的非重叠时间窗口限制的磁盘组块上.<strong>注:新版本有实验性质的允许时间窗口重叠的选项</strong></p>
+<p><strong>Compaction(压缩)</strong> - 将块合并在一起以减少查询时间</p>
+<p><strong>Meta文件</strong> - json文件描述块(block)-时间范围，压缩级别等</p>
+<p><strong>Tombstones(墓碑)</strong> - 时间序列设置为在下一次压缩时删除。查询时也会排除这些。</p>
+<p><strong>index(索引)</strong> - 查询数据时使用的索引。压缩数据时会写入索引。postings list - 包含与列表关联的给定标签对的序列引用列表。<a href="https://github.com/prometheus/tsdb/blob/c848349f07c83bd38d5d19faa5ea71c7fd8923ea/index/postings.go#L39" target="_blank" rel="noopener">map[labels.Label][]uint64</a>  -  foo，bar  -  1,3,12,14  - 这意味着带有值bar的标签foo与ID 1,3 ……关联 - 这被用作引用表来获取我们需要的序列。<br>符号 -  ??????????</p>
+<p>非常好的高级概述索引，块，墓碑文件格式:<a href="https://github.com/prometheus/tsdb/tree/master/docs/format" target="_blank" rel="noopener">https://github.com/prometheus/tsdb/tree/master/docs/format</a></p>
+<h1 id="Opening-the-DB-tsdb-Open"><a href="#Opening-the-DB-tsdb-Open" class="headerlink" title="Opening the DB - tsdb.Open"></a>Opening the DB - tsdb.Open</h1><p>选择时间序列：</p>
+<p>创建一个查询器对象，以便能够在1,1000个时间范围内选择数据</p>
+<p><code>querier, err := db.Querier(1, 1000)</code> - 读取所有块（包括头部）的元信息，并返回给定时间范围内每个块的块查询器。</p>
+<p>现在我们需要一些过滤</p>
+<p><code>matcher:=labels.NewEqualMatcher(&quot;foo&quot;, &quot;bar&quot;)</code> - 过滤结果的Matcher接口。</p>
+<p>现在我们可以使用此匹配器运行Select<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">querier.Select(matcher)</span><br></pre></td></tr></table></figure></p>
+<p>首先，我们遍历时间范围内所有Block的所有Postings，以找出那些块包含这些Matchers的时间序列。<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">Head <span class="keyword">struct</span> &#123;</span><br><span class="line">	<span class="comment">// All series addressable by their ID or hash.</span></span><br><span class="line">	series *stripeSeries - prealocated arrays with locks , partitioned by hash </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>通过headAppender向Head添加序列.<br>headAppender用于一个包含一下内容的切片:<br><figure class="highlight golang"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">[]RefSeries </span><br><span class="line">	Ref    	<span class="keyword">uint64</span></span><br><span class="line">	Labels labels.Labels</span><br><span class="line">[]RefSample</span><br><span class="line">	Ref 	<span class="keyword">uint64</span></span><br><span class="line">	T  	<span class="keyword">int64</span></span><br><span class="line">	V  	<span class="keyword">float64</span></span><br><span class="line">	series *memSeries <span class="keyword">struct</span> &#123;</span><br><span class="line">	ref          <span class="keyword">uint64</span></span><br><span class="line">	lset         labels.Labels</span><br><span class="line">	chunks       []*memChunk</span><br><span class="line">	chunkRange   <span class="keyword">int64</span></span><br><span class="line">	firstChunkID <span class="keyword">int</span></span><br><span class="line">	nextAt    <span class="keyword">int64</span> <span class="comment">// timestamp at which to cut the next chunk.</span></span><br><span class="line">	lastValue <span class="keyword">float64</span></span><br><span class="line">	app chunkenc.Appender <span class="comment">// Current appender for the chunk.</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p><code>headAppender.Add</code>  - 仅获取或创建Series（而不是样本）.通过标签哈希检查Head.stripeSeries中是否存在Series. 如果不存在则生成新的id并通过<code>head.stripeSeries.getOrSet()</code>将新的memSeries添加到全局缓存中.如果创建了新的<code>memSeries</code>，<code>headAppender</code>还会向<code>headAppender.[]RefSeries</code>添加新元素。</p>
+<p>接下来是调用<code>headAppender.AddFast</code>来添加样本。</p>
+<p><code>headAppender.AddFast</code>  - 获取缓存序列，进行一些时间检查以确保样本在<code>headAppender</code>时间范围内，并将样本添加到<code>headAppender.[]RefSample</code>及其引用和指向该序列的指针。（?????如果我们有引用，它为什么要添加完整系列？）</p>
+<p><code>headAppender.Commit()</code> - 将所有<code>[]RefSample</code>和<code>[]RefSeries</code>写入WAL（因此我们不会在发生崩溃时将其丢失），而不是遍历所有<code>[]RefSample</code>并将T和V样本值附加到调用<code>RefSample.series.append(T，V)</code>的序列指针。这开始填充chunk并将每个块中的每120个样本分组。</p>
+<p><strong>Head -&gt; HeadAppender</strong></p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/prometheus/" rel="tag"># prometheus</a>
+          
+            <a href="/tags/监控/" rel="tag"># 监控</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/08/09/prometheus/prometheus-tsdb/" rel="next" title="prometheus tsdb deeper and lower (1)">
+                <i class="fa fa-chevron-left"></i> prometheus tsdb deeper and lower (1)
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2019/08/13/prometheus/prometheus-exporter-golang/" rel="prev" title="prometheus exporter golang">
+                prometheus exporter golang <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  
+    <div class="comments" id="comments">
+      
+        <div id="gitment-container"></div>
+      
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Arthur</p>
+              <p class="site-description motion-element" itemprop="description">Personal Blog, Notes and Everything should be kept</p>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">61</span>
+                    <span class="site-state-item-name">posts</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  <a href="/categories/index.html">
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">6</span>
+                    <span class="site-state-item-name">categories</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  <a href="/tags/index.html">
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">34</span>
+                    <span class="site-state-item-name">tags</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+            <div class="feed-link motion-element">
+              <a href="/atom.xml" rel="alternate">
+                <i class="fa fa-rss"></i>
+                RSS
+              </a>
+            </div>
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Opening-the-DB-tsdb-Open"><span class="nav-number">1.</span> <span class="nav-text">Opening the DB - tsdb.Open</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Arthur</span>
+
+  
+
+  
+</div>
+
+
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> v3.7.1</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://theme-next.org">NexT.Pisces</a> v6.3.0</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=6.3.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=6.3.0"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=6.3.0"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=6.3.0"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=6.3.0"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=6.3.0"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=6.3.0"></script>
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+<!-- LOCAL: You can save these files to your site and update links -->
+    
+        
+        <link rel="stylesheet" href="https://aimingoo.github.io/gitmint/style/default.css">
+        <script src="https://aimingoo.github.io/gitmint/dist/gitmint.browser.js"></script>
+    
+<!-- END LOCAL -->
+
+    
+
+    
+      <script type="text/javascript">
+      function renderGitment(){
+        var gitment = new Gitmint({
+            id: window.location.pathname,
+            owner: 'ShingYang',
+            repo: 'ShingYang.github.io',
+            
+            lang: "" || navigator.language || navigator.systemLanguage || navigator.userLanguage,
+            
+            oauth: {
+            
+            
+                client_secret: '23e4590b8427cdef66c3c0038c9fb29dfd9106bc',
+            
+                client_id: '3971199b02eb0109e893'
+            }});
+        gitment.render('gitment-container');
+      }
+
+      
+      renderGitment();
+      
+      </script>
+    
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

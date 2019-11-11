@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=6.3.0" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=6.3.0">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=6.3.0" color="#222">
+
+
+
+
+
+
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '6.3.0',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="原文 设计Thanos是一组组件，可以组成具有长期存储功能的高可用性Prometheus设置。 其主要目标是简化操作，保留Prometheus的可靠性。 Prometheus指标数据模型和2.0存储格式（规范，幻灯片）是系统中所有组件的基础层。 架构Thanos是具有鲜明(distinct)和解耦(decoupled)目的而描述组件的群集系统。 群集组件可以分类如下：  指标来源 Metric s">
+<meta name="keywords" content="监控,thanos">
+<meta property="og:type" content="article">
+<meta property="og:title" content="thanos设计">
+<meta property="og:url" content="http://blog.yapo.fun/2019/03/26/thanos/thanos-design/index.html">
+<meta property="og:site_name" content="Arthur&#39;s Blog">
+<meta property="og:description" content="原文 设计Thanos是一组组件，可以组成具有长期存储功能的高可用性Prometheus设置。 其主要目标是简化操作，保留Prometheus的可靠性。 Prometheus指标数据模型和2.0存储格式（规范，幻灯片）是系统中所有组件的基础层。 架构Thanos是具有鲜明(distinct)和解耦(decoupled)目的而描述组件的群集系统。 群集组件可以分类如下：  指标来源 Metric s">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2019-11-11T13:26:06.037Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="thanos设计">
+<meta name="twitter:description" content="原文 设计Thanos是一组组件，可以组成具有长期存储功能的高可用性Prometheus设置。 其主要目标是简化操作，保留Prometheus的可靠性。 Prometheus指标数据模型和2.0存储格式（规范，幻灯片）是系统中所有组件的基础层。 架构Thanos是具有鲜明(distinct)和解耦(decoupled)目的而描述组件的群集系统。 群集组件可以分类如下：  指标来源 Metric s">
+
+
+
+  <link rel="alternate" href="/atom.xml" title="Arthur's Blog" type="application/atom+xml" />
+
+
+
+
+  <link rel="canonical" href="http://blog.yapo.fun/2019/03/26/thanos/thanos-design/"/>
+
+
+
+<script type="text/javascript" id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>thanos设计 | Arthur's Blog</title>
+  
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style type="text/css">
+    .use-motion .motion-element,
+    .use-motion .brand,
+    .use-motion .menu-item,
+    .sidebar-inner,
+    .use-motion .post-block,
+    .use-motion .pagination,
+    .use-motion .comments,
+    .use-motion .post-header,
+    .use-motion .post-body,
+    .use-motion .collection-title { opacity: initial; }
+
+    .use-motion .logo,
+    .use-motion .site-title,
+    .use-motion .site-subtitle {
+      opacity: initial;
+      top: initial;
+    }
+
+    .use-motion {
+      .logo-line-before i { left: initial; }
+      .logo-line-after i { right: initial; }
+    }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Arthur's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="Toggle navigation bar">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+    <a href="/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-home"></i> <br />Home</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+    <a href="/tags/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />Tags</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+    <a href="/categories/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-th"></i> <br />Categories</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+    <a href="/archives/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />Archives</a>
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://blog.yapo.fun/2019/03/26/thanos/thanos-design/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Arthur">
+      <meta itemprop="description" content="Personal Blog, Notes and Everything should be kept">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Arthur's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">thanos设计
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+
+              
+                
+              
+
+              <time title="Created: 2019-03-26 13:48:00" itemprop="dateCreated datePublished" datetime="2019-03-26T13:48:00+08:00">2019-03-26</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">Edited on</span>
+                
+                <time title="Modified: 2019-11-11 21:26:06" itemprop="dateModified" datetime="2019-11-11T21:26:06+08:00">2019-11-11</time>
+              
+            
+          </span>
+
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2019/03/26/thanos/thanos-design/#comments" itemprop="discussionUrl">
+                  <span class="post-meta-item-text">Comments: </span> <span class="post-comments-count gitment-comments-count" data-xid="/2019/03/26/thanos/thanos-design/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p><a href="https://github.com/improbable-eng/thanos/blob/master/docs/design.md" target="_blank" rel="noopener">原文</a></p>
+<h1 id="设计"><a href="#设计" class="headerlink" title="设计"></a>设计</h1><p>Thanos是一组组件，可以组成具有长期存储功能的高可用性Prometheus设置。 其主要目标是简化操作，保留Prometheus的可靠性。</p>
+<p>Prometheus指标数据模型和2.0存储格式（<a href="https://github.com/prometheus/tsdb/tree/master/docs/format" target="_blank" rel="noopener">规范</a>，<a href="https://www.slideshare.net/FabianReinartz/storing-16-bytes-at-scale-81282712" target="_blank" rel="noopener">幻灯片</a>）是系统中所有组件的基础层。</p>
+<h2 id="架构"><a href="#架构" class="headerlink" title="架构"></a>架构</h2><p>Thanos是具有鲜明(distinct)和解耦(decoupled)目的而描述组件的群集系统。 群集组件可以分类如下：</p>
+<ul>
+<li>指标来源 Metric sources</li>
+<li>存储 Stores</li>
+<li>查询 Queriers</li>
+</ul>
+<h3 id="指标来源"><a href="#指标来源" class="headerlink" title="指标来源"></a>指标来源</h3><p>数据源是生成或收集指标数据的组件的非常通用的定义。数据源将群集中的数据通告给潜在客户。可以通过众所周知的gRPC服务检索指标数据。</p>
+<p>Thanos提供了两个充当数据源的组件：Prometheus边车和规则节点。</p>
+<p>边车基于Prometheus的<a href="https://prometheus.io/docs/querying/api/" target="_blank" rel="noopener">HTTP and remote-read APIs</a>实现gRPC服务。规则节点直接基于Prometheus存储引擎实现的。</p>
+<h4 id="指标数据备份"><a href="#指标数据备份" class="headerlink" title="指标数据备份"></a>指标数据备份</h4><p>数据源持久保存数据通过Prometheus 2.0存储引擎实现。存储引擎定期生成固定时间范围内的不可变数据块。块是一个包含少量较大文件的目录，其中包含检索数据所需的所有样本数据和必需索引：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">01BX6V6TY06G5MFQ0GPH7EMXRH</span><br><span class="line">├── chunks</span><br><span class="line">│   ├── 000001</span><br><span class="line">│   ├── 000002</span><br><span class="line">│   └── 000003</span><br><span class="line">├── index</span><br><span class="line">└── meta.json</span><br></pre></td></tr></table></figure></p>
+<p>块顶级目录是ULID（如UUID，但按字典顺序排序并编码创建时间）。</p>
+<ul>
+<li>块文件(chunk files)每个容纳几百MB的块。相同序列的块按顺序对齐。返回的系列按其指标名称对齐。这使下面变得更加相关。</li>
+<li>索引(index)文件包含通过标签及其块的位置查找特定系列所需的所有信息。</li>
+<li><code>meta.json</code>包含有关统计数据，时间范围和压缩级别等块的元信息。</li>
+</ul>
+<p>这些块文件可以备份到对象存储，然后由另一个组件查询（参见下文）。</p>
+<p>所有数据都是在Prometheus服务器/存储引擎创建时上传的。<code>meta.json</code>文件可以由<code>thanos</code>部分扩展，可以添加Thanos特定的元数据。目前，它包括块的生产者已分配的“外部标签”。这稍后有助于过滤用于查询的块而无需访问其数据文件。</p>
+<p>meta.json在侧车上传时间内更新。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">┌────────────┬─────────┐         ┌────────────┬─────────┐     ┌─────────┐</span><br><span class="line">│ Prometheus │ Sidecar │   ...   │ Prometheus │ Sidecar │     │   Rule  │</span><br><span class="line">└────────────┴────┬────┘         └────────────┴────┬────┘     └┬────────┘</span><br><span class="line">                  │                                │           │</span><br><span class="line">                Blocks                           Blocks      Blocks</span><br><span class="line">                  │                                │           │</span><br><span class="line">                  v                                v           v</span><br><span class="line">              ┌──────────────────────────────────────────────────┐</span><br><span class="line">              │                   Object Storage                 │</span><br><span class="line">              └──────────────────────────────────────────────────┘</span><br></pre></td></tr></table></figure>
+<h3 id="存储-stores"><a href="#存储-stores" class="headerlink" title="存储(stores)"></a>存储(stores)</h3><p>存储节点充当在对象存储桶中的数据的数据块网关。它实现与数据源相同的gRPC API，以提供对存储桶中的所有指标数据的访问。</p>
+<p>它不断同步存储桶中存在的块，并将对指标数据的请求转换为对象存储请求。它实现了各种策略以最小化对对象存储的请求的数量，例如通过其元数据（例如，时间范围和标签）过滤相关块并缓存频繁的索引查找。</p>
+<p>Prometheus 2.0存储布局经过优化，可实现最小的读取放大。例如，相同时间序列的样本数据在块文件中顺序对齐。类似地，同一指标名称的序列也按顺序对齐。</p>
+<p>存储节点知道文件的布局，并将数据请求转换为最小量的对象存储请求的计划。每个请求可以同时获取多达数十万个块。这对于满足对对象存储的有限量请求的大查询至关重要。</p>
+<p>目前只缓存索引数据。块数据可以缓存，但大小要大几个数量级。在当前状态下，从对象存储中获取块数据已经只占端到端延迟的一小部分。因此，目前没有动力通过添加块缓存来增加存储节点资源需求/限制其可伸缩性。</p>
+<h3 id="存储和数据源-一切都是一样的"><a href="#存储和数据源-一切都是一样的" class="headerlink" title="存储和数据源 - 一切都是一样的"></a>存储和数据源 - 一切都是一样的</h3><p>由于存储节点和数据源公开相同的gRPC Store API，因此客户端可以在很大程度上将它们视为等效的，并且不必关心它们正在查询的特定组件。</p>
+<p>Store API的每个实现者都会公布有关其提供的数据的元信息。 这允许客户端最小化它们必须扇出的节点集，以满足特定的数据查询。</p>
+<p>从本质上讲，Store API允许通过一组标签匹配器（从PromQL中获知）和时间范围来查找数据。 它返回在块数据中找到的压缩样本块。 它纯粹是一种数据检索API，并且不提供复杂的查询执行。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">┌──────────────────────┐  ┌────────────┬─────────┐   ┌────────────┐</span><br><span class="line">│ Google Cloud Storage │  │ Prometheus │ Sidecar │   │    Rule    │</span><br><span class="line">└─────────────────┬────┘  └────────────┴────┬────┘   └─┬──────────┘</span><br><span class="line">                  │                         │          │</span><br><span class="line">         Block File Ranges                  │          │</span><br><span class="line">                  │                     Store API      │</span><br><span class="line">                  v                         │          │</span><br><span class="line">                ┌──────────────┐            │          │</span><br><span class="line">                │     Store    │            │      Store API</span><br><span class="line">                └────────┬─────┘            │          │</span><br><span class="line">                         │                  │          │</span><br><span class="line">                     Store API              │          │</span><br><span class="line">                         │                  │          │</span><br><span class="line">                         v                  v          v</span><br><span class="line">                       ┌──────────────────────────────────┐</span><br><span class="line">                       │              Client              │</span><br><span class="line">                       └──────────────────────────────────┘</span><br></pre></td></tr></table></figure>
+<h3 id="查询器层-querier-layer"><a href="#查询器层-querier-layer" class="headerlink" title="查询器层(querier layer)"></a>查询器层(querier layer)</h3><p>查询器是无状态和水平可伸缩的实例，它们在集群中公开的Store API之上实现PromQL。查询者参与群集以便能够弹性地发现所有数据源和存储节点。规则节点反过来可以发现查询节点以评估记录和警报规则。</p>
+<p>基于存储节点和源节点的元数据，它们尝试最小化请求扇出以获取特定查询的数据。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">┌──────────────────┐  ┌────────────┬─────────┐   ┌────────────┐</span><br><span class="line">│    Store Node    │  │ Prometheus │ Sidecar │   │    Rule    │</span><br><span class="line">└─────────────┬────┘  └────────────┴────┬────┘   └─┬──────────┘</span><br><span class="line">              │                         │          │</span><br><span class="line">              │                         │          │</span><br><span class="line">              │                         │          │</span><br><span class="line">              v                         v          v</span><br><span class="line">        ┌─────────────────────────────────────────────────────┐</span><br><span class="line">        │                      Query layer                    │</span><br><span class="line">        └─────────────────────────────────────────────────────┘</span><br><span class="line">                ^                  ^                  ^</span><br><span class="line">                │                  │                  │</span><br><span class="line">       ┌────────┴────────┐  ┌──────┴─────┐       ┌────┴───┐</span><br><span class="line">       │ Alert Component │  │ Dashboards │  ...  │ Web UI │</span><br><span class="line">       └─────────────────┘  └────────────┘       └────────┘</span><br></pre></td></tr></table></figure>
+<h3 id="压缩器-compactor"><a href="#压缩器-compactor" class="headerlink" title="压缩器(compactor)"></a>压缩器(compactor)</h3><p>压缩器是一个单独的进程，不参与Thanos集群。 相反，它仅指向对象存储桶并且不断地将多个较小的块合并为较大的块。 这显着减少了存储区中的总存储大小，存储节点上的负载以及从存储区获取查询数据所需的请求数量。</p>
+<p>将来，压缩器可以执行其他批处理，例如降采样和应用保留策略。</p>
+<h2 id="扩展"><a href="#扩展" class="headerlink" title="扩展"></a>扩展</h2><p>Thanos组件都没有提供任何分片方法。唯一可显式扩展的组件是查询节点，它们是无状态的并且可以任意扩展。通过依赖外部对象存储系统来确保存储容量的扩展。</p>
+<p>存储(store)，规则(rule)和压缩器(compactor)节点都可在单个实例或HA对中显式扩展。与Prometheus类似，功能分片可以应用于罕见的情况，但这种情况并不适用。</p>
+<p>例如，规则集可以跨多个HA对规则节点划分。无论是否为每个区域/日期中心分配专用存储桶，存储节点都可能受功能分片的影响。</p>
+<p>总的来说，一流(first-class)的水平分片是可能的，但暂时不会考虑，因为没有证据表明它在实际设置中是必需的。</p>
+<h2 id="成本"><a href="#成本" class="headerlink" title="成本"></a>成本</h2><p>Thanos增加现有Prometheus设置的唯一额外成本实际上是存储和查询来自对象存储和运行存储节点的数据的代价。</p>
+<p>查询器，压缩器和规则节点需要的计算资源与通过不直接在Prometheus服务器上执行相同工作而节省的计算资源相同。</p>
+<p>在传统的Prometheus设置中本地访问的数据必须通过Thanos网络传输。 我们通常期望这种数据混乱通常发生在未计量的网络中，因此不会导致任何额外的成本。</p>
+<p>每GB的典型对象存储价格约为0.02美元。存储节点的检索数量（通常价格为每10,0000字节 0.004美元）很大程度上取决于各个查询模式。将总存储成本增加20％以考虑检索和运行存储节点似乎是一个保守的估计。</p>
+<p>假设我们要存储100TB的度量数据。总数据大小约为1.07字节/样本，这相当于：</p>
+<ul>
+<li>在平均100万个活跃时间序列中存储48.88年的数据，默认的15秒刮擦间隔。</li>
+<li>在平均100万个活跃时间序列中存储3.25年的数据，并且具有1秒的刮擦间隔。</li>
+</ul>
+<details><br><summary>计算</summary><br><br><br>用1.07字节/样品存储100TB。<br><br><br>100(TB)/1.07(字节/样本)=1.027580961×10¹⁴ 样本.<br><br><br>我们假设平均1mln时间序列，因此单个序列的102758096.1个”可用”样本以适应整体100TB。<br><br><br>15s刮擦间隔（4个样品/分钟）：<br><br><br>102758096.1(样本)/4(样本/分钟)=25689524.025分钟=~48.88年<br><br><br>1s刮擦间隔（60个样品/分钟）：<br><br><br>102758096.1(样本)/60(样本/分钟)=1712634.935分钟=~3.25年<br></details>
+
+
+<p>在基线Prometheus设置之上，此数量的度量数据的成本将花费大约2400美元/月。</p>
+<p>作为回报，能够将Prometheus实例的保留时间从数周缩短至数小时，可为本地SSD或网络块存储（通常为0.17美元/ GB）节省成本，并减少内存消耗。</p>
+<p>此计算尚未考虑较低优先级数据和降采样的较短保留范围。</p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/监控/" rel="tag"># 监控</a>
+          
+            <a href="/tags/thanos/" rel="tag"># thanos</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/03/23/prometheus/query/prometheus-querying-http-api/" rel="next" title="prometheus查询HTTP API">
+                <i class="fa fa-chevron-left"></i> prometheus查询HTTP API
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2019/03/26/thanos/thanos-rule/" rel="prev" title="thanos规则">
+                thanos规则 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  
+    <div class="comments" id="comments">
+      
+        <div id="gitment-container"></div>
+      
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Arthur</p>
+              <p class="site-description motion-element" itemprop="description">Personal Blog, Notes and Everything should be kept</p>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">61</span>
+                    <span class="site-state-item-name">posts</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  <a href="/categories/index.html">
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">6</span>
+                    <span class="site-state-item-name">categories</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  <a href="/tags/index.html">
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">34</span>
+                    <span class="site-state-item-name">tags</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+            <div class="feed-link motion-element">
+              <a href="/atom.xml" rel="alternate">
+                <i class="fa fa-rss"></i>
+                RSS
+              </a>
+            </div>
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#设计"><span class="nav-number">1.</span> <span class="nav-text">设计</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#架构"><span class="nav-number">1.1.</span> <span class="nav-text">架构</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#指标来源"><span class="nav-number">1.1.1.</span> <span class="nav-text">指标来源</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#指标数据备份"><span class="nav-number">1.1.1.1.</span> <span class="nav-text">指标数据备份</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#存储-stores"><span class="nav-number">1.1.2.</span> <span class="nav-text">存储(stores)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#存储和数据源-一切都是一样的"><span class="nav-number">1.1.3.</span> <span class="nav-text">存储和数据源 - 一切都是一样的</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#查询器层-querier-layer"><span class="nav-number">1.1.4.</span> <span class="nav-text">查询器层(querier layer)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#压缩器-compactor"><span class="nav-number">1.1.5.</span> <span class="nav-text">压缩器(compactor)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#扩展"><span class="nav-number">1.2.</span> <span class="nav-text">扩展</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#成本"><span class="nav-number">1.3.</span> <span class="nav-text">成本</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Arthur</span>
+
+  
+
+  
+</div>
+
+
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> v3.7.1</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://theme-next.org">NexT.Pisces</a> v6.3.0</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=6.3.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=6.3.0"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=6.3.0"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=6.3.0"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=6.3.0"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=6.3.0"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=6.3.0"></script>
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+<!-- LOCAL: You can save these files to your site and update links -->
+    
+        
+        <link rel="stylesheet" href="https://aimingoo.github.io/gitmint/style/default.css">
+        <script src="https://aimingoo.github.io/gitmint/dist/gitmint.browser.js"></script>
+    
+<!-- END LOCAL -->
+
+    
+
+    
+      <script type="text/javascript">
+      function renderGitment(){
+        var gitment = new Gitmint({
+            id: window.location.pathname,
+            owner: 'ShingYang',
+            repo: 'ShingYang.github.io',
+            
+            lang: "" || navigator.language || navigator.systemLanguage || navigator.userLanguage,
+            
+            oauth: {
+            
+            
+                client_secret: '23e4590b8427cdef66c3c0038c9fb29dfd9106bc',
+            
+                client_id: '3971199b02eb0109e893'
+            }});
+        gitment.render('gitment-container');
+      }
+
+      
+      renderGitment();
+      
+      </script>
+    
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=6.3.0" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=6.3.0">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=6.3.0" color="#222">
+
+
+
+
+
+
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '6.3.0',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="原文基于prometheus2.8 Prometheus提供了一种称为PromQL（Prometheus查询语言）的功能查询语言，允许用户实时选择和聚合时间序列数据。表达式的结果可以显示为图形，在Prometheus的表达式浏览器中显示为表格数据，或者由外部系统通过HTTP API使用。 Examples本文档仅供参考。对于学习，从几个例子开始可能更容易。 表达式语言数据类型在Prometheus">
+<meta name="keywords" content="prometheus,监控">
+<meta property="og:type" content="article">
+<meta property="og:title" content="prometheus查询入门">
+<meta property="og:url" content="http://blog.yapo.fun/2019/03/23/prometheus/query/prometheus-querying-basic/index.html">
+<meta property="og:site_name" content="Arthur&#39;s Blog">
+<meta property="og:description" content="原文基于prometheus2.8 Prometheus提供了一种称为PromQL（Prometheus查询语言）的功能查询语言，允许用户实时选择和聚合时间序列数据。表达式的结果可以显示为图形，在Prometheus的表达式浏览器中显示为表格数据，或者由外部系统通过HTTP API使用。 Examples本文档仅供参考。对于学习，从几个例子开始可能更容易。 表达式语言数据类型在Prometheus">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2019-11-11T13:26:06.037Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="prometheus查询入门">
+<meta name="twitter:description" content="原文基于prometheus2.8 Prometheus提供了一种称为PromQL（Prometheus查询语言）的功能查询语言，允许用户实时选择和聚合时间序列数据。表达式的结果可以显示为图形，在Prometheus的表达式浏览器中显示为表格数据，或者由外部系统通过HTTP API使用。 Examples本文档仅供参考。对于学习，从几个例子开始可能更容易。 表达式语言数据类型在Prometheus">
+
+
+
+  <link rel="alternate" href="/atom.xml" title="Arthur's Blog" type="application/atom+xml" />
+
+
+
+
+  <link rel="canonical" href="http://blog.yapo.fun/2019/03/23/prometheus/query/prometheus-querying-basic/"/>
+
+
+
+<script type="text/javascript" id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>prometheus查询入门 | Arthur's Blog</title>
+  
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style type="text/css">
+    .use-motion .motion-element,
+    .use-motion .brand,
+    .use-motion .menu-item,
+    .sidebar-inner,
+    .use-motion .post-block,
+    .use-motion .pagination,
+    .use-motion .comments,
+    .use-motion .post-header,
+    .use-motion .post-body,
+    .use-motion .collection-title { opacity: initial; }
+
+    .use-motion .logo,
+    .use-motion .site-title,
+    .use-motion .site-subtitle {
+      opacity: initial;
+      top: initial;
+    }
+
+    .use-motion {
+      .logo-line-before i { left: initial; }
+      .logo-line-after i { right: initial; }
+    }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Arthur's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="Toggle navigation bar">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+    <a href="/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-home"></i> <br />Home</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+    <a href="/tags/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />Tags</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+    <a href="/categories/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-th"></i> <br />Categories</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+    <a href="/archives/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />Archives</a>
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://blog.yapo.fun/2019/03/23/prometheus/query/prometheus-querying-basic/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Arthur">
+      <meta itemprop="description" content="Personal Blog, Notes and Everything should be kept">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Arthur's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">prometheus查询入门
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+
+              
+                
+              
+
+              <time title="Created: 2019-03-23 10:05:00" itemprop="dateCreated datePublished" datetime="2019-03-23T10:05:00+08:00">2019-03-23</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">Edited on</span>
+                
+                <time title="Modified: 2019-11-11 21:26:06" itemprop="dateModified" datetime="2019-11-11T21:26:06+08:00">2019-11-11</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">In</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/监控/" itemprop="url" rel="index"><span itemprop="name">监控</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2019/03/23/prometheus/query/prometheus-querying-basic/#comments" itemprop="discussionUrl">
+                  <span class="post-meta-item-text">Comments: </span> <span class="post-comments-count gitment-comments-count" data-xid="/2019/03/23/prometheus/query/prometheus-querying-basic/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p><a href="https://prometheus.io/docs/prometheus/2.8/querying/basics/" target="_blank" rel="noopener">原文</a>基于prometheus2.8</p>
+<p>Prometheus提供了一种称为PromQL（Prometheus查询语言）的功能查询语言，允许用户实时选择和聚合时间序列数据。表达式的结果可以显示为图形，在Prometheus的表达式浏览器中显示为表格数据，或者由外部系统通过<a href="https://prometheus.io/docs/prometheus/latest/querying/api/" target="_blank" rel="noopener">HTTP API</a>使用。</p>
+<h2 id="Examples"><a href="#Examples" class="headerlink" title="Examples"></a>Examples</h2><p>本文档仅供参考。对于学习，从几个<a href="https://prometheus.io/docs/prometheus/latest/querying/examples/" target="_blank" rel="noopener">例子</a>开始可能更容易。</p>
+<h2 id="表达式语言数据类型"><a href="#表达式语言数据类型" class="headerlink" title="表达式语言数据类型"></a>表达式语言数据类型</h2><p>在Prometheus的表达式语言中，表达式或子表达式可以评估为以下四种类型之一：</p>
+<ul>
+<li><strong>即时向量</strong>(instant vector) - 一组包含每个时间序列的单个样本的时间序列，它们共享相同的时间戳</li>
+<li><strong>范围向量</strong>(range vector) - 一组时间系列，包含每个时间序列随时间变化的一系列数据点</li>
+<li><strong>标量</strong>(scalar) - 一个简单的数字浮点值</li>
+<li><strong>字符串</strong>(String) - 一个简单的字符串值; 目前尚未使用</li>
+</ul>
+<p>根据用例（例如，当绘图与显示表达式的输出时），只有自用户指定的表达式部分类型是合法的。例如，返回即时向量的表达式是唯一可以直接绘制的类型。</p>
+<h2 id="字面值-literals"><a href="#字面值-literals" class="headerlink" title="字面值(literals)"></a>字面值(literals)</h2><h3 id="字符串字面值-string-literals"><a href="#字符串字面值-string-literals" class="headerlink" title="字符串字面值(string literals)"></a>字符串字面值(string literals)</h3><p>字符串可以用单引号，双引号或反引号指定为文字。</p>
+<p>PromQL遵循与Go相同的转义规则。 在单引号或双引号中，反斜杠开始转义序列，后面可以跟a,b,f,n,r,t,v或\。可以使用八进制（\nnn）或十六进制（\xnn，\unnnn和\Unnnnnnnn）提供特定字符。</p>
+<p>在反引号内没有处理转义。与Go不同，Prometheus不会丢弃反引号中的换行符。</p>
+<p>例子:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">&quot;this is a string&quot;</span><br><span class="line">&apos;these are unescaped: \n \\ \t&apos;</span><br><span class="line">`these are not unescaped: \n &apos; &quot; \t`</span><br></pre></td></tr></table></figure></p>
+<h3 id="浮点字面值-float-literals"><a href="#浮点字面值-float-literals" class="headerlink" title="浮点字面值(float literals)"></a>浮点字面值(float literals)</h3><p>标量浮点值可以字面上写为[-](digits)[.(digits)]格式的数字。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">-2.43</span><br></pre></td></tr></table></figure></p>
+<h2 id="时间序列选择器"><a href="#时间序列选择器" class="headerlink" title="时间序列选择器"></a>时间序列选择器</h2><h3 id="即时矢量选择器"><a href="#即时矢量选择器" class="headerlink" title="即时矢量选择器"></a>即时矢量选择器</h3><p>即时向量选择器允许为给定时间戳（即时）选择一组时间序列和单个样本值：在最简单的形式中，仅指定指标名称。这会生成包含具有此指标名称的所有时间序列的元素的即时向量。</p>
+<p>此示例选择具有http_requests_total指标名称的所有时间系列：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http_requests_total</span><br></pre></td></tr></table></figure></p>
+<p>通过附加一组匹配花括号({})的标签，可以进一步过滤这些时间序列。</p>
+<p>此示例仅选择具有http_requests_total指标名称的时间系列，该名称也将作业标签设置为prometheus，并将其组标签设置为canary：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http_requests_total&#123;job=&quot;prometheus&quot;,group=&quot;canary&quot;&#125;</span><br></pre></td></tr></table></figure></p>
+<p>还可以对标签值进行负匹配，或者将标签值与正则表达式进行匹配。存在以下标签匹配运算符：</p>
+<ul>
+<li>=：选择与提供的字符串完全相同的标签。</li>
+<li>!=：选择不等于提供的字符串的标签。</li>
+<li>=~：选择正则表达式匹配提供的字符串（或子字符串）的标签。</li>
+<li>!~：选择不与提供的字符串（或子字符串）匹配的标签。</li>
+</ul>
+<p>例如，这将为staging,testing和development环境以及除GET之外的HTTP方法选择所有http_requests_total时间序列。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http_requests_total&#123;environment=~&quot;staging|testing|development&quot;,method!=&quot;GET&quot;&#125;</span><br></pre></td></tr></table></figure></p>
+<p>与空标签值匹配的标签匹配器也会选择根本没有特定标签集的所有时间序列。正则表达式匹配是完全锚定的。可以为同一标签名称提供多个匹配器。</p>
+<p>向量选择器必须指定一个名称或至少一个与空字符串不匹配的标签匹配器。 以下表达式是非法的：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&#123;job=~&quot;.*&quot;&#125; # Bad!</span><br></pre></td></tr></table></figure></p>
+<p>相反，这些表达式是有效的，因为它们都有一个与空标签值不匹配的选择器。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">&#123;job=~&quot;.+&quot;&#125;              # Good!</span><br><span class="line">&#123;job=~&quot;.*&quot;,method=&quot;get&quot;&#125; # Good!</span><br></pre></td></tr></table></figure></p>
+<p>通过匹配内部<strong>name</strong>标签将标签匹配器应用于指标名称。例如，表达式http_requests_total等效于{__name__ =”http_requests_total”}。也可以使用除=(!=,=~,!~)之外的匹配器。以下表达式选择名称以job:开头的所有指标:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&#123;__name__=~&quot;job:.*&quot;&#125;</span><br></pre></td></tr></table></figure></p>
+<p>Prometheus正则表达式使用<a href="https://github.com/google/re2/wiki/Syntax" target="_blank" rel="noopener">RE2语法</a>。</p>
+<h3 id="范围向量选择器"><a href="#范围向量选择器" class="headerlink" title="范围向量选择器"></a>范围向量选择器</h3><p>范围向量字面值像即时向量字面值一样工作，除了它们从当前时刻选择一系列样本。在语法上，范围持续时间附加在向量选择器末尾的方括号([])中，以指定应为每个结果范围向量元素提取多长时间值。</p>
+<p>持续时间指定为数字，紧接着是以下单位之一：</p>
+<ul>
+<li>s - seconds</li>
+<li>m - minutes</li>
+<li>h - hours</li>
+<li>d - days</li>
+<li>w - weeks</li>
+<li>y - years</li>
+</ul>
+<p>在此示例中，我们选择在过去5分钟内为指标名称为http_requests_total且job标签设置为prometheus的所有时间序列记录的所有值：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http_requests_total&#123;job=&quot;prometheus&quot;&#125;[5m]</span><br></pre></td></tr></table></figure></p>
+<h3 id="偏移修改器"><a href="#偏移修改器" class="headerlink" title="偏移修改器"></a>偏移修改器</h3><p>偏移修改器允许更改查询中各个即时和范围向量的时间偏移。</p>
+<p>例如，以下表达式返回过去相对于当前查询评估时间5分钟的http_requests_total值：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">http_requests_total offset 5m</span><br></pre></td></tr></table></figure></p>
+<p>请注意，偏移修改器始终需要紧跟选择器，即以下内容是正确的：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sum(http_requests_total&#123;method=&quot;GET&quot;&#125; offset 5m) // GOOD.</span><br></pre></td></tr></table></figure></p>
+<p>但是下面的是不正确的:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sum(http_requests_total&#123;method=&quot;GET&quot;&#125;) offset 5m // INVALID.</span><br></pre></td></tr></table></figure></p>
+<p>偏移选择器同样适用范围向量。下面返回一周前的五分钟速率:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">rate(http_requests_total[5m] offset 1w)</span><br></pre></td></tr></table></figure></p>
+<h2 id="子查询"><a href="#子查询" class="headerlink" title="子查询"></a>子查询</h2><p>子查询允许您针对给定范围和分辨率(resolution)运行即时查询。子查询的结果是范围向量。<br>语法:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">&lt;instant_query&gt; &apos;[&apos; &lt;range&gt; &apos;:&apos; [&lt;resolution&gt;] &apos;]&apos; [ offset &lt;duration&gt; ]</span><br></pre></td></tr></table></figure></p>
+<ul>
+<li>resolution是可选的。 </li>
+</ul>
+<h2 id="运算符"><a href="#运算符" class="headerlink" title="运算符"></a>运算符</h2><p>Prometheus支持许多二进制和聚合运算符。这些在<a href="https://prometheus.io/docs/prometheus/2.8/querying/operators/" target="_blank" rel="noopener">表达式语言运算符</a>页面中有详细描述。</p>
+<h2 id="函数"><a href="#函数" class="headerlink" title="函数"></a>函数</h2><p>Prometheus支持多种操作数据的功能。这些在<a href="https://prometheus.io/docs/prometheus/2.8/querying/functions/" target="_blank" rel="noopener">表达式语言函数</a>页面中有详细描述。</p>
+<h2 id="陷阱"><a href="#陷阱" class="headerlink" title="陷阱"></a>陷阱</h2><h3 id="陈旧"><a href="#陈旧" class="headerlink" title="陈旧"></a>陈旧</h3><p>运行查询时，采样数据的时间戳独立于实际当前时间序列数据。这主要是为了支持聚合（总和，平均等）的情况，其中多个聚合时间序列在时间上不完全对齐。由于它们的独立性，Prometheus需要在每个相关时间序列的时间戳上分配值。它只需在此时间戳之前采用最新的样本即可。</p>
+<p>如果目标刮擦或规则评估不再返回先前存在的时间序列的样本，则该时间序列将被标记为陈旧。如果目标被移除，之前很快就会将其先前返回的时间序列标记为陈旧。</p>
+<p>如果在时间序列标记为过时后在采样时间戳处评估查询，则不会为该时间系列返回任何值。如果随后在该时间序列中摄取新样本，它们将照常返回。</p>
+<p>如果在采样时间戳前5分钟未找到任何样本（默认情况下），则此时间点不返回该时间序列的值。这实际上意味着时间序列在其最新收集的样本超过5分钟或标记为陈旧之后从图表“消失”。</p>
+<p>对于在其刮擦中包含时间戳的时间序列，不会标记陈旧性。在这种情况下，仅应用5分钟的阈值。</p>
+<h3 id="避免慢查询和过载"><a href="#避免慢查询和过载" class="headerlink" title="避免慢查询和过载"></a>避免慢查询和过载</h3><p>如果查询需要对大量数据进行操作，则绘制图表可能会超时或使服务器或浏览器过载。 因此，在构建对未知数据的查询时，始终在Prometheus表达式浏览器的表格视图中开始构建查询，直到结果集看起来合理（最多数百个，而不是数千个时间序列）。 只有在您充分过滤或汇总数据后，才能切换到图表模式。 如果表达式仍然需要很长时间来绘制ad-hoc图形，请通过<a href="https://prometheus.io/docs/prometheus/2.8/configuration/recording_rules/#recording-rules" target="_blank" rel="noopener">录制规则</a>预先录制它。</p>
+<p>这与Prometheus的查询语言尤其相关，其中像api_http_requests_total这样的简单指标名称选择器可以扩展到具有不同标签的数千个时间序列。还要记住，即使输出只是少量的时间序列，聚合在许多时间序列上的表达式也会在服务器上产生负载。这类似于在关系数据库中对列的所有值求和的速度很慢，即使输出值只是一个数字。</p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/prometheus/" rel="tag"># prometheus</a>
+          
+            <a href="/tags/监控/" rel="tag"># 监控</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2019/01/18/designpattern/design-pattern-decorator/" rel="next" title="Decorator 装饰模式">
+                <i class="fa fa-chevron-left"></i> Decorator 装饰模式
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2019/03/23/prometheus/query/prometheus-querying-operators/" rel="prev" title="prometheus查询-运算符">
+                prometheus查询-运算符 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  
+    <div class="comments" id="comments">
+      
+        <div id="gitment-container"></div>
+      
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Arthur</p>
+              <p class="site-description motion-element" itemprop="description">Personal Blog, Notes and Everything should be kept</p>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">61</span>
+                    <span class="site-state-item-name">posts</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  <a href="/categories/index.html">
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">6</span>
+                    <span class="site-state-item-name">categories</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  <a href="/tags/index.html">
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">34</span>
+                    <span class="site-state-item-name">tags</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+            <div class="feed-link motion-element">
+              <a href="/atom.xml" rel="alternate">
+                <i class="fa fa-rss"></i>
+                RSS
+              </a>
+            </div>
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Examples"><span class="nav-number">1.</span> <span class="nav-text">Examples</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#表达式语言数据类型"><span class="nav-number">2.</span> <span class="nav-text">表达式语言数据类型</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#字面值-literals"><span class="nav-number">3.</span> <span class="nav-text">字面值(literals)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#字符串字面值-string-literals"><span class="nav-number">3.1.</span> <span class="nav-text">字符串字面值(string literals)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#浮点字面值-float-literals"><span class="nav-number">3.2.</span> <span class="nav-text">浮点字面值(float literals)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#时间序列选择器"><span class="nav-number">4.</span> <span class="nav-text">时间序列选择器</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#即时矢量选择器"><span class="nav-number">4.1.</span> <span class="nav-text">即时矢量选择器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#范围向量选择器"><span class="nav-number">4.2.</span> <span class="nav-text">范围向量选择器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#偏移修改器"><span class="nav-number">4.3.</span> <span class="nav-text">偏移修改器</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#子查询"><span class="nav-number">5.</span> <span class="nav-text">子查询</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#运算符"><span class="nav-number">6.</span> <span class="nav-text">运算符</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#函数"><span class="nav-number">7.</span> <span class="nav-text">函数</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#陷阱"><span class="nav-number">8.</span> <span class="nav-text">陷阱</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#陈旧"><span class="nav-number">8.1.</span> <span class="nav-text">陈旧</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#避免慢查询和过载"><span class="nav-number">8.2.</span> <span class="nav-text">避免慢查询和过载</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Arthur</span>
+
+  
+
+  
+</div>
+
+
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> v3.7.1</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://theme-next.org">NexT.Pisces</a> v6.3.0</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=6.3.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=6.3.0"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=6.3.0"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=6.3.0"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=6.3.0"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=6.3.0"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=6.3.0"></script>
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+<!-- LOCAL: You can save these files to your site and update links -->
+    
+        
+        <link rel="stylesheet" href="https://aimingoo.github.io/gitmint/style/default.css">
+        <script src="https://aimingoo.github.io/gitmint/dist/gitmint.browser.js"></script>
+    
+<!-- END LOCAL -->
+
+    
+
+    
+      <script type="text/javascript">
+      function renderGitment(){
+        var gitment = new Gitmint({
+            id: window.location.pathname,
+            owner: 'ShingYang',
+            repo: 'ShingYang.github.io',
+            
+            lang: "" || navigator.language || navigator.systemLanguage || navigator.userLanguage,
+            
+            oauth: {
+            
+            
+                client_secret: '23e4590b8427cdef66c3c0038c9fb29dfd9106bc',
+            
+                client_id: '3971199b02eb0109e893'
+            }});
+        gitment.render('gitment-container');
+      }
+
+      
+      renderGitment();
+      
+      </script>
+    
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

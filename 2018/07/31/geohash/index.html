@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=6.3.0" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=6.3.0">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=6.3.0">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=6.3.0" color="#222">
+
+
+
+
+
+
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Pisces',
+    version: '6.3.0',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="本文参考github和维基百科 GEOHASHGeoHash是目前比较主流实现位置服务的技术，Geohash算法将经纬度二维数据编码为一个字符串，本质是一个降维的过程。它将空间分成一个一个的网格，是一种空间填充曲线，Z型曲线。实际上更像一个N型曲线。geohash的长度越长经度越高，geohash长度为8时，精度能到19m。 一个栗子   地点 经纬度 Geohash     鸟巢 116.402">
+<meta name="keywords" content="geo,geohash">
+<meta property="og:type" content="article">
+<meta property="og:title" content="geohash">
+<meta property="og:url" content="http://blog.yapo.fun/2018/07/31/geohash/index.html">
+<meta property="og:site_name" content="Arthur&#39;s Blog">
+<meta property="og:description" content="本文参考github和维基百科 GEOHASHGeoHash是目前比较主流实现位置服务的技术，Geohash算法将经纬度二维数据编码为一个字符串，本质是一个降维的过程。它将空间分成一个一个的网格，是一种空间填充曲线，Z型曲线。实际上更像一个N型曲线。geohash的长度越长经度越高，geohash长度为8时，精度能到19m。 一个栗子   地点 经纬度 Geohash     鸟巢 116.402">
+<meta property="og:locale" content="zh-Hans">
+<meta property="og:updated_time" content="2019-11-11T13:26:06.033Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="geohash">
+<meta name="twitter:description" content="本文参考github和维基百科 GEOHASHGeoHash是目前比较主流实现位置服务的技术，Geohash算法将经纬度二维数据编码为一个字符串，本质是一个降维的过程。它将空间分成一个一个的网格，是一种空间填充曲线，Z型曲线。实际上更像一个N型曲线。geohash的长度越长经度越高，geohash长度为8时，精度能到19m。 一个栗子   地点 经纬度 Geohash     鸟巢 116.402">
+
+
+
+  <link rel="alternate" href="/atom.xml" title="Arthur's Blog" type="application/atom+xml" />
+
+
+
+
+  <link rel="canonical" href="http://blog.yapo.fun/2018/07/31/geohash/"/>
+
+
+
+<script type="text/javascript" id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>geohash | Arthur's Blog</title>
+  
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style type="text/css">
+    .use-motion .motion-element,
+    .use-motion .brand,
+    .use-motion .menu-item,
+    .sidebar-inner,
+    .use-motion .post-block,
+    .use-motion .pagination,
+    .use-motion .comments,
+    .use-motion .post-header,
+    .use-motion .post-body,
+    .use-motion .collection-title { opacity: initial; }
+
+    .use-motion .logo,
+    .use-motion .site-title,
+    .use-motion .site-subtitle {
+      opacity: initial;
+      top: initial;
+    }
+
+    .use-motion {
+      .logo-line-before i { left: initial; }
+      .logo-line-after i { right: initial; }
+    }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Arthur's Blog</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="Toggle navigation bar">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+    <a href="/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-home"></i> <br />Home</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+    <a href="/tags/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />Tags</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+    <a href="/categories/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-th"></i> <br />Categories</a>
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+    <a href="/archives/" rel="section">
+      <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />Archives</a>
+  </li>
+
+      
+      
+    </ul>
+  
+
+  
+
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+            
+
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://blog.yapo.fun/2018/07/31/geohash/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Arthur">
+      <meta itemprop="description" content="Personal Blog, Notes and Everything should be kept">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Arthur's Blog">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">geohash
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+
+              
+                
+              
+
+              <time title="Created: 2018-07-31 23:47:42" itemprop="dateCreated datePublished" datetime="2018-07-31T23:47:42+08:00">2018-07-31</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">Edited on</span>
+                
+                <time title="Modified: 2019-11-11 21:26:06" itemprop="dateModified" datetime="2019-11-11T21:26:06+08:00">2019-11-11</time>
+              
+            
+          </span>
+
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/07/31/geohash/#comments" itemprop="discussionUrl">
+                  <span class="post-meta-item-text">Comments: </span> <span class="post-comments-count gitment-comments-count" data-xid="/2018/07/31/geohash/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>本文参考<a href="https://github.com/GongDexing/Geohash/blob/master/README.md" target="_blank" rel="noopener">github</a>和<a href="https://en.wikipedia.org/wiki/Geohash" target="_blank" rel="noopener">维基百科</a></p>
+<h3 id="GEOHASH"><a href="#GEOHASH" class="headerlink" title="GEOHASH"></a>GEOHASH</h3><p>GeoHash是目前比较主流实现位置服务的技术，Geohash算法将经纬度二维数据编码为一个字符串，本质是一个降维的过程。它将空间分成一个一个的网格，是一种<a href="https://en.wikipedia.org/wiki/Space-filling_curves" target="_blank" rel="noopener">空间填充曲线</a>，<a href="https://en.wikipedia.org/wiki/Z-order_curve" target="_blank" rel="noopener">Z型曲线</a>。<a href="https://en.wikipedia.org/wiki/Geohash" target="_blank" rel="noopener">实际上更像一个N型曲线</a>。geohash的长度越长经度越高，geohash长度为8时，<a href="https://segmentfault.com/a/1190000002513514" target="_blank" rel="noopener">精度</a>能到19m。</p>
+<h3 id="一个栗子"><a href="#一个栗子" class="headerlink" title="一个栗子"></a>一个栗子</h3><table>
+<thead>
+<tr>
+<th style="text-align:center">地点</th>
+<th style="text-align:center">经纬度</th>
+<th style="text-align:center">Geohash</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">鸟巢</td>
+<td style="text-align:center">116.402843,39.999375</td>
+<td style="text-align:center">wx4g8c9v</td>
+</tr>
+<tr>
+<td style="text-align:center">水立方</td>
+<td style="text-align:center">116.3967,39.99932</td>
+<td style="text-align:center">wx4g89tk</td>
+</tr>
+<tr>
+<td style="text-align:center">故宫</td>
+<td style="text-align:center">116.40382,39.918118</td>
+<td style="text-align:center">wx4g0ffe</td>
+</tr>
+</tbody>
+</table>
+<p>水立方就在鸟巢在附近，距离600米左右，而故宫到鸟巢直线距离9公里左右，体现在Geohash上，鸟巢和水立方的前五位是一样的，而鸟巢和故宫只有前4位是一样的，<strong>也就是说Geohash前面相同的越多，两个位置越近，但是反过来说，却不一定正确，</strong>这个在后面会详细介绍。</p>
+<h3 id="geohash-org"><a href="#geohash-org" class="headerlink" title="geohash.org"></a>geohash.org</h3><p>算法作者创建了<a href="http://geohash.org/" target="_blank" rel="noopener">http://geohash.org/</a>网站，可以将地理坐标方便的转换为短URL，以方便在邮件、论坛或者网站上引用。</p>
+<h3 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h3><p>将经纬度转换为Geohash大体可以分为三步曲：</p>
+<ul>
+<li>将纬度(-90, 90)平均分成两个区间(-90, 0)、(0, 90)，如果坐标位置的纬度值在第一区间，则编码是0，否则编码为1。我们用 39.918118 举例，由于39.918118 属于 (0, 90)，所以编码为1，然后我们继续将(0, 90)分成(0, 45)、(45, 90)两个区间，而39.918118 位于(0, 45)，所以编码是0，依次类推，我们进行20次拆分，最后计算39.918118 的编码是 10111000110001011011；经度的处理也是类似，只是经度的范围是(-180, 180)，116.40382的编码是<strong>11010010110001101010</strong></li>
+<li>经纬度的编码合并，从0开始，奇数为是纬度，偶数为是经度，得到的编码是<strong>1110011101001000111100000011100111001101</strong></li>
+<li>对经纬度合并后的编码，进行base32编码，最终得到<strong>wx4g0ffe</strong></li>
+</ul>
+<h3 id="边界问题"><a href="#边界问题" class="headerlink" title="边界问题"></a>边界问题</h3><p>两个位置距离得越近是否意味着Geohash前面相同的越多呢？答案是否定的，两个很近的地点[116.3967,44.9999]和[116.3967,45.0009]的Geohash分别是<strong>wxfzbxvr</strong>和<strong>y84b08j2</strong>，这就是Geohash存在的边界问题，这两个地点虽然很近，但是刚好在分界点45两侧，导致Geohash完全不同，单纯依靠Geohash匹配前缀的方式并不能解决这种问题。</p>
+<p>在一维空间解决不了这个问题，回到二维空间中，将当前Geohash这块区域周围的八块区域的Geohash计算出来<br>[116.3967,44.9999] 周围8块区域的Geohash</p>
+<blockquote>
+<p><b>y84b08j2</b>, wxfzbxvq, wxfzbxvx, wxfzbxvp, y84b08j8, y84b08j0, wxfzbxvw, wxfzbxvn</p>
+</blockquote>
+<p>[116.3967,45.0009] 周围8块区域的Geohash</p>
+<blockquote>
+<p>y84b08j3, <b>wxfzbxvr</b>, y84b08j8, y84b08j0, y84b08j9, y84b08j1, wxfzbxvx, wxfzbxvp</p>
+</blockquote>
+<p>[116.3967,44.9999]和[116.3967,45.0009]分别出现在各自附近的区域中，周围8个区域的Geohash怎么计算得到呢？很简单，当Geohash长度是8时，对应的每个最小单元<br><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">double</span> latUnit = (Max_Lat - Min_Lat) / (<span class="number">1</span> &lt;&lt; <span class="number">20</span>);</span><br><span class="line"><span class="keyword">double</span> lngUnit = (Max_Lng - Min_Lng) / (<span class="number">1</span> &lt;&lt; <span class="number">20</span>);</span><br></pre></td></tr></table></figure></p>
+<p>这样可以计算出8个分别分布在周围8个区域的地点，根据地点便可以计算出周围8个区域的Geohash<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">[lat + latUnit, lng]</span><br><span class="line">[lat - latUnit, lng]</span><br><span class="line">[lat, lng + lngUnit]</span><br><span class="line">[lat, lng - lngUnit]</span><br><span class="line">[lat + latUnit, lng + lngUnit]</span><br><span class="line">[lat + latUnit, lng - lngUnit]</span><br><span class="line">[lat - latUnit, lng + lngUnit]</span><br><span class="line">[lat - latUnit, lng - lngUnit]</span><br></pre></td></tr></table></figure></p>
+<p>在实际应用中，先根据Geohash筛选出附近的地点，然后再算出距离附近地点的距离.</p>
+<h3 id="推荐文章"><a href="#推荐文章" class="headerlink" title="推荐文章"></a>推荐文章</h3><p><a href="https://yq.aliyun.com/articles/17233" target="_blank" rel="noopener">GeoHash核心原理解析</a><br><a href="https://github.com/GongDexing/Geohash/blob/master/README.md" target="_blank" rel="noopener">github</a><br><a href="https://en.wikipedia.org/wiki/Geohash" target="_blank" rel="noopener">维基百科</a><br><a href="https://yq.aliyun.com/articles/73995" target="_blank" rel="noopener">geohash vs PostGIS</a></p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/geo/" rel="tag"># geo</a>
+          
+            <a href="/tags/geohash/" rel="tag"># geohash</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2018/07/30/golang/golang-function/" rel="next" title="golang 函数（不是方法）">
+                <i class="fa fa-chevron-left"></i> golang 函数（不是方法）
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2018/08/04/socket-io-emit-cheetsheet/" rel="prev" title="socket.io emit cheetsheet">
+                socket.io emit cheetsheet <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  
+    <div class="comments" id="comments">
+      
+        <div id="gitment-container"></div>
+      
+    </div>
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Arthur</p>
+              <p class="site-description motion-element" itemprop="description">Personal Blog, Notes and Everything should be kept</p>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">61</span>
+                    <span class="site-state-item-name">posts</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  <a href="/categories/index.html">
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">6</span>
+                    <span class="site-state-item-name">categories</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  <a href="/tags/index.html">
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">34</span>
+                    <span class="site-state-item-name">tags</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+            <div class="feed-link motion-element">
+              <a href="/atom.xml" rel="alternate">
+                <i class="fa fa-rss"></i>
+                RSS
+              </a>
+            </div>
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+            
+          
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#GEOHASH"><span class="nav-number">1.</span> <span class="nav-text">GEOHASH</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#一个栗子"><span class="nav-number">2.</span> <span class="nav-text">一个栗子</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#geohash-org"><span class="nav-number">3.</span> <span class="nav-text">geohash.org</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#原理"><span class="nav-number">4.</span> <span class="nav-text">原理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#边界问题"><span class="nav-number">5.</span> <span class="nav-text">边界问题</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#推荐文章"><span class="nav-number">6.</span> <span class="nav-text">推荐文章</span></a></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Arthur</span>
+
+  
+
+  
+</div>
+
+
+
+
+  <div class="powered-by">Powered by <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> v3.7.1</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">Theme &mdash; <a class="theme-link" target="_blank" href="https://theme-next.org">NexT.Pisces</a> v6.3.0</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=6.3.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=6.3.0"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=6.3.0"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=6.3.0"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=6.3.0"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=6.3.0"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=6.3.0"></script>
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+<!-- LOCAL: You can save these files to your site and update links -->
+    
+        
+        <link rel="stylesheet" href="https://aimingoo.github.io/gitmint/style/default.css">
+        <script src="https://aimingoo.github.io/gitmint/dist/gitmint.browser.js"></script>
+    
+<!-- END LOCAL -->
+
+    
+
+    
+      <script type="text/javascript">
+      function renderGitment(){
+        var gitment = new Gitmint({
+            id: window.location.pathname,
+            owner: 'ShingYang',
+            repo: 'ShingYang.github.io',
+            
+            lang: "" || navigator.language || navigator.systemLanguage || navigator.userLanguage,
+            
+            oauth: {
+            
+            
+                client_secret: '23e4590b8427cdef66c3c0038c9fb29dfd9106bc',
+            
+                client_id: '3971199b02eb0109e893'
+            }});
+        gitment.render('gitment-container');
+      }
+
+      
+      renderGitment();
+      
+      </script>
+    
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
